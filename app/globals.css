@@ -1,0 +1,209 @@
+@import "tailwindcss";
+
+/* ── Paletas ────────────────────────────────────────────────────────────────
+   El tema resuelto vive en el atributo data-theme del <html>: siempre contiene
+   "oscuro" o "claro", nunca "sistema". De la preferencia del usuario se encarga
+   el script de arranque, que la traduce antes de la primera pintura; así el CSS
+   solo tiene que conocer dos paletas y no hay parpadeo al cargar.
+
+   La identidad de la app es oscura y editorial; la paleta clara traslada esos
+   mismos papeles a un marfil cálido en lugar de al blanco puro, que con el
+   acento dorado resultaría frío.                                            */
+
+:root,
+:root[data-theme="oscuro"] {
+  color-scheme: dark;
+
+  /* Negro puro y texto #ededed, como el tema oscuro del sistema de referencia. */
+  --canvas: #000000;
+  --surface: #0a0a0a;
+  --surface-2: #171717;
+  --line: #2e2e2e;
+  --ink: #ededed;
+  --ink-muted: #a1a1a1;
+  --ink-faint: #7a7a7a;
+  /* En oscuro la acción principal se invierte: fondo claro, texto negro. */
+  --accent: #ededed;
+  --accent-soft: #1f1f1f;
+  --on-accent: #000000;
+  --danger: #ff5b4f;
+  --scrim: rgb(0 0 0 / 0.7);
+  --checker-a: #171717;
+  --checker-b: #0a0a0a;
+  /* Fondo de las superficies donde se enseña la foto de una prenda: necesita
+     un tono propio o una camiseta negra se pierde sobre el negro de la página. */
+  --display: #1c1c1c;
+  --figure-shadow: rgb(0 0 0 / 0.5);
+
+  /* Borde como sombra: anillo nítido de 1 px más una capa ambiental. */
+  --edge: 0 0 0 1px rgb(255 255 255 / 0.14);
+  --edge-raised: 0 0 0 1px rgb(255 255 255 / 0.16), 0 2px 4px rgb(0 0 0 / 0.6),
+    0 8px 24px rgb(0 0 0 / 0.5);
+  --focus: hsl(212 100% 62%);
+}
+
+:root[data-theme="claro"] {
+  color-scheme: light;
+
+  /* Blanco puro y #171717: el lienzo de galería del sistema de referencia. */
+  --canvas: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #fafafa;
+  --line: #eaeaea;
+  --ink: #171717;
+  --ink-muted: #666666;
+  --ink-faint: #8f8f8f;
+  --accent: #171717;
+  --accent-soft: #f2f2f2;
+  --on-accent: #ffffff;
+  --danger: #d93036;
+  --scrim: rgb(0 0 0 / 0.45);
+  --checker-a: #f0f0f0;
+  --checker-b: #fafafa;
+  --display: #f2f2f2;
+  --figure-shadow: rgb(0 0 0 / 0.18);
+
+  --edge: 0 0 0 1px rgb(0 0 0 / 0.08), 0 1px 2px rgb(0 0 0 / 0.04);
+  --edge-raised: 0 0 0 1px rgb(0 0 0 / 0.08), 0 2px 4px rgb(0 0 0 / 0.04),
+    0 8px 24px rgb(0 0 0 / 0.08);
+  --focus: hsl(212 100% 48%);
+}
+
+/* ── Sistema de diseño ─────────────────────────────────────────────────────
+   Los tokens apuntan a las variables de la paleta, de modo que las utilidades
+   de Tailwind (bg-canvas, text-ink…) se resuelven en el tema activo.        */
+@theme inline {
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-display: var(--display);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+  --color-danger: var(--danger);
+  --color-scrim: var(--scrim);
+  --color-focus: var(--focus);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.75rem;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  background: var(--canvas);
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  /* Ligaduras activadas en toda la interfaz, como pide el sistema. */
+  font-feature-settings: "liga" 1;
+  /* Geist es estrecha: un pelín de cierre mejora el texto corrido. */
+  letter-spacing: -0.011em;
+  /* Evita el rebote elástico al arrastrar dentro del lienzo del probador. */
+  overscroll-behavior-y: none;
+}
+
+/* Áreas seguras del notch y de la barra de gestos. */
+.pt-safe {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+}
+.pb-safe {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+.mb-safe {
+  margin-bottom: env(safe-area-inset-bottom);
+}
+
+/* Carruseles horizontales sin barra de desplazamiento visible. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Fondo de cuadros que revela la transparencia del recorte de la prenda. */
+.bg-checker {
+  background-image: repeating-conic-gradient(
+    var(--checker-a) 0% 25%,
+    var(--checker-b) 0% 50%
+  );
+  background-size: 20px 20px;
+}
+
+/* ── Foco ──────────────────────────────────────────────────────────────────
+   Un anillo de foco visible es obligatorio para quien navega con teclado.
+   Se declara una sola vez con `:where()`, que no suma especificidad, de modo
+   que cualquier componente puede sobrescribirlo sin pelearse con !important.
+   Se usa :focus-visible y no :focus para no molestar a quien usa el ratón.  */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+
+/* Borde como sombra, la técnica del sistema de diseño. */
+.edge {
+  box-shadow: var(--edge);
+}
+.edge-raised {
+  box-shadow: var(--edge-raised);
+}
+
+/* Geist va muy apretada: los titulares llevan interletraje negativo, nunca
+   positivo. Cuanto mayor el tamaño, más se cierra. */
+.font-display {
+  letter-spacing: -0.045em;
+  font-weight: 600;
+}
+
+/* Los títulos no deben dejar una palabra suelta en la última línea. */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+/* Las cifras comparables se alinean en columna. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Los controles táctiles no deben mostrar el resaltado azul de iOS. */
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+input,
+select,
+textarea {
+  /* 16px evita el zoom automático de Safari al enfocar un campo. */
+  font-size: 16px;
+}
+
+canvas {
+  touch-action: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

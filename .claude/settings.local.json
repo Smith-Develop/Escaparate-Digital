@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(node carrusel.mjs /tmp/claude-1000/-home-jhon-Documentos-Escaparate/badfb83e-c412-4eef-ba8d-59cfb027ff5b/scratchpad/cookie.txt /tmp/claude-1000/-home-jhon-Documentos-Escaparate/badfb83e-c412-4eef-ba8d-59cfb027ff5b/scratchpad/shots)",
+      "Bash(node looks-rail.mjs /tmp/claude-1000/-home-jhon-Documentos-Escaparate/badfb83e-c412-4eef-ba8d-59cfb027ff5b/scratchpad/cookie.txt /tmp/claude-1000/-home-jhon-Documentos-Escaparate/badfb83e-c412-4eef-ba8d-59cfb027ff5b/scratchpad/shots)",
+      "Bash(python3 -)",
+      "Bash(node actualizar-look.mjs /tmp/claude-1000/-home-jhon-Documentos-Escaparate/badfb83e-c412-4eef-ba8d-59cfb027ff5b/scratchpad/cookie.txt)",
+      "Bash(node -e ' *)"
+    ]
+  }
+}
