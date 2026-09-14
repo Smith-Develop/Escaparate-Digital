@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // El proyecto nativo lo genera Capacitor: no es código nuestro y trae su
+    // propio JavaScript empaquetado.
+    "android/**",
+    // Las fotos y la base de la versión con servidor, a la espera de migrarse.
+    "migracion/**",
   ]),
 ]);
 

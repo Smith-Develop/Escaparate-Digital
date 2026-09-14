@@ -4,9 +4,16 @@ import { useState } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { Button } from "@/components/ui/Button";
 import { Input, Label, Textarea } from "@/components/ui/Field";
-import { NuevaEtiqueta } from "@/components/closet/NuevaEtiqueta";
-import { CATEGORIES, SEASONS, SUBCATEGORIES, colorsWith, occasionsWith } from "@/lib/taxonomy";
-import type { CategoryId } from "@/lib/taxonomy";
+import { GestorEtiquetas } from "@/components/closet/GestorEtiquetas";
+import {
+  CATEGORIES,
+  SUBCATEGORIES,
+  colorsWith,
+  occasionsWith,
+  seasonsWith,
+  typesWith,
+} from "@/lib/taxonomy";
+import type { CategoryId, Etiqueta, TagKind } from "@/lib/taxonomy";
 import type { Tag } from "@/lib/types";
 
 export type ItemDraft = {
@@ -61,11 +68,51 @@ export function ItemForm({
   submitLabel,
   tags,
 }: Props) {
+  const tipos = typesWith(tags, draft.category);
   const colores = colorsWith(tags);
+  const temporadas = seasonsWith(tags);
   const ocasiones = occasionsWith(tags);
   const [showExtras, setShowExtras] = useState(false);
+  // Qué gestor de etiquetas propias está abierto, si hay alguno.
+  const [gestionando, setGestionando] = useState<TagKind | null>(null);
   const set = <K extends keyof ItemDraft>(key: K, value: ItemDraft[K]) =>
     onChange({ ...draft, [key]: value });
+
+  type Campo = "subcategory" | "color" | "season" | "occasion";
+
+  /**
+   * Panel de etiquetas propias de una propiedad.
+   *
+   * Al renombrar o borrar hay que mirar el valor elegido en el borrador: si era
+   * justo el que se ha tocado, se queda apuntando a algo que ya no existe y la
+   * prenda se guardaría con una etiqueta fantasma.
+   */
+  const gestor = (kind: TagKind, campo: Campo, lista: Etiqueta[], parent?: string) =>
+    gestionando === kind && (
+      <GestorEtiquetas
+        kind={kind}
+        parent={parent}
+        propias={lista.filter((e) => e.propia)}
+        onCreated={(id) => set(campo, id)}
+        onRenamed={(antes, ahora) => {
+          if (draft[campo] === antes) set(campo, ahora);
+        }}
+        onDeleted={(id) => {
+          if (draft[campo] === id) set(campo, lista[0].id);
+        }}
+        onClose={() => setGestionando(null)}
+      />
+    );
+
+  /** Chip que abre y cierra el gestor de esa propiedad. */
+  const chipGestor = (kind: TagKind, etiqueta: string) => (
+    <Chip
+      active={gestionando === kind}
+      onClick={() => setGestionando(gestionando === kind ? null : kind)}
+    >
+      + {etiqueta}
+    </Chip>
+  );
 
   return (
     <form
@@ -106,15 +153,23 @@ export function ItemForm({
         ))}
       </Group>
 
-      <Group label="Tipo de prenda">
-        {SUBCATEGORIES[draft.category].map((sub) => (
-          <Chip key={sub} active={draft.subcategory === sub} onClick={() => set("subcategory", sub)}>
-            {sub}
+      <Group
+        label="Tipo de prenda"
+        extra={gestor("tipo", "subcategory", tipos, draft.category)}
+      >
+        {tipos.map((tipo) => (
+          <Chip
+            key={tipo.id}
+            active={draft.subcategory === tipo.id}
+            onClick={() => set("subcategory", tipo.id)}
+          >
+            {tipo.label}
           </Chip>
         ))}
+        {chipGestor("tipo", "Tipo")}
       </Group>
 
-      <Group label="Color principal">
+      <Group label="Color principal" extra={gestor("color", "color", colores)}>
         {colores.map((color) => (
           <Chip
             key={color.id}
@@ -125,11 +180,11 @@ export function ItemForm({
             {color.label}
           </Chip>
         ))}
-        <NuevaEtiqueta kind="color" onCreated={(slug) => set("color", slug)} />
+        {chipGestor("color", "Color")}
       </Group>
 
-      <Group label="Temporada">
-        {SEASONS.map((season) => (
+      <Group label="Temporada" extra={gestor("temporada", "season", temporadas)}>
+        {temporadas.map((season) => (
           <Chip
             key={season.id}
             active={draft.season === season.id}
@@ -138,9 +193,10 @@ export function ItemForm({
             {season.label}
           </Chip>
         ))}
+        {chipGestor("temporada", "Temporada")}
       </Group>
 
-      <Group label="Ocasión">
+      <Group label="Ocasión" extra={gestor("ocasion", "occasion", ocasiones)}>
         {ocasiones.map((occasion) => (
           <Chip
             key={occasion.id}
@@ -150,7 +206,7 @@ export function ItemForm({
             {occasion.label}
           </Chip>
         ))}
-        <NuevaEtiqueta kind="ocasion" onCreated={(slug) => set("occasion", slug)} />
+        {chipGestor("ocasion", "Ocasión")}
       </Group>
 
       <div className="grid grid-cols-2 gap-4">
@@ -228,11 +284,22 @@ export function ItemForm({
   );
 }
 
-function Group({ label, children }: { label: string; children: React.ReactNode }) {
+function Group({
+  label,
+  children,
+  extra,
+}: {
+  label: string;
+  children: React.ReactNode;
+  /** Contenido a lo ancho, bajo la fila de etiquetas: dentro del carrusel
+   *  horizontal un formulario se saldría de la pantalla por la derecha. */
+  extra?: React.ReactNode;
+}) {
   return (
     <div>
       <Label>{label}</Label>
       <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 pb-1">{children}</div>
+      {extra && <div className="mt-2">{extra}</div>}
     </div>
   );
 }

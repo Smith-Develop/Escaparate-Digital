@@ -28,7 +28,12 @@ export function ClosetView({
 
   return (
     <>
-      <ClosetFilters open={filtersOpen} onToggle={() => setFiltersOpen((v) => !v)} tags={tags} />
+      <ClosetFilters
+        open={filtersOpen}
+        onToggle={() => setFiltersOpen((v) => !v)}
+        items={items}
+        tags={tags}
+      />
 
       <div className="flex-1 px-5 pb-28 pt-3">
         {items.length === 0 ? (

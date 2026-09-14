@@ -1,28 +1,50 @@
 "use client";
 
 import { create } from "zustand";
+import { enRangoDePrecio } from "@/lib/dinero";
 import { LAYER_BY_CATEGORY } from "@/lib/taxonomy";
 import type { EditingLook, Item, Look } from "@/lib/types";
 
+/**
+ * Filtros del escaparate: una entrada por cada propiedad que se cataloga.
+ *
+ * Todas valen "todas" cuando no filtran, salvo la de favoritas, que es un
+ * interruptor. Así `activeFilterCount` cuenta sin tener que saber de cada una.
+ */
 type Filters = {
   category: string;
+  /** Tipo de prenda, guardado por su nombre igual que en `Item.subcategory`. */
+  subcategory: string;
   color: string;
   season: string;
   occasion: string;
+  brand: string;
+  size: string;
+  /** Tramo de `PRICE_RANGES`, o "sin" para las que no tienen precio. */
+  price: string;
+  /** Año de compra, o "sin" para las que no tienen fecha. */
+  year: string;
+  favorite: boolean;
   query: string;
 };
 
 const EMPTY_FILTERS: Filters = {
   category: "todas",
+  subcategory: "todas",
   color: "todas",
   season: "todas",
   occasion: "todas",
+  brand: "todas",
+  size: "todas",
+  price: "todas",
+  year: "todas",
+  favorite: false,
   query: "",
 };
 
 type ClosetState = {
   filters: Filters;
-  setFilter: (key: keyof Filters, value: string) => void;
+  setFilter: <K extends keyof Filters>(key: K, value: Filters[K]) => void;
   resetFilters: () => void;
   activeFilterCount: () => number;
 };
@@ -32,8 +54,9 @@ export const useCloset = create<ClosetState>((set, get) => ({
   setFilter: (key, value) => set((s) => ({ filters: { ...s.filters, [key]: value } })),
   resetFilters: () => set({ filters: EMPTY_FILTERS }),
   activeFilterCount: () => {
-    const { category, color, season, occasion, query } = get().filters;
-    return [category, color, season, occasion].filter((v) => v !== "todas").length + (query ? 1 : 0);
+    const { query, favorite, ...resto } = get().filters;
+    const porValor = Object.values(resto).filter((v) => v !== "todas").length;
+    return porValor + (query ? 1 : 0) + (favorite ? 1 : 0);
   },
 }));
 
@@ -43,13 +66,30 @@ export function filterItems(items: Item[], filters: Filters) {
   const query = filters.query.trim().toLowerCase();
   return items.filter((item) => {
     if (filters.category !== "todas" && item.category !== filters.category) return false;
+    if (filters.subcategory !== "todas" && item.subcategory !== filters.subcategory) return false;
     if (filters.color !== "todas" && item.color !== filters.color) return false;
     if (filters.season !== "todas" && item.season !== filters.season) return false;
     if (filters.occasion !== "todas" && item.occasion !== filters.occasion) return false;
+    if (filters.brand !== "todas" && (item.brand ?? "") !== filters.brand) return false;
+    if (filters.size !== "todas" && (item.size ?? "") !== filters.size) return false;
+    if (!enRangoDePrecio(item.priceCents, filters.price)) return false;
+    if (filters.year !== "todas" && añoDeCompra(item) !== filters.year) return false;
+    if (filters.favorite && !item.favorite) return false;
     if (!query) return true;
-    return `${item.name} ${item.subcategory} ${item.brand ?? ""}`.toLowerCase().includes(query);
+    const texto = `${item.name} ${item.subcategory} ${item.brand ?? ""} ${item.size ?? ""}`;
+    return texto.toLowerCase().includes(query);
   });
 }
+
+/**
+ * Año de compra tal como lo eligió el usuario.
+ *
+ * La fecha se guarda a medianoche UTC, así que hay que leerla en UTC: al oeste
+ * de Greenwich, un 1 de enero se convertiría en el 31 de diciembre anterior y
+ * la prenda saltaría de año en el filtro.
+ */
+export const añoDeCompra = (item: Item) =>
+  item.purchasedAt ? String(new Date(item.purchasedAt).getUTCFullYear()) : "sin";
 
 type OutfitState = {
   /** Prendas equipadas en orden de apilado: la última es la que se ve encima. */

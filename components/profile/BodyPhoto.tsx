@@ -1,7 +1,6 @@
 "use client";
 
-import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { Foto } from "@/components/ui/Foto";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { CapturaNativa } from "@/components/closet/CapturaNativa";
@@ -9,7 +8,12 @@ import { Mannequin } from "@/components/closet/Mannequin";
 import { RetoqueEditor } from "@/components/closet/RetoqueEditor";
 import { PlacementPanel } from "@/components/closet/PlacementPanel";
 import { Button } from "@/components/ui/Button";
-import { blobToFile, downscale, removeBackgroundSafe, trimTransparent } from "@/lib/image";
+import { downscale, removeBackgroundSafe, trimTransparent } from "@/lib/image";
+import { subirFoto } from "@/lib/datos/fotos";
+import { guardarAvatar } from "@/lib/datos/avatar";
+import { guardarFotoLocal } from "@/lib/local/fotos";
+import { useEspejo } from "@/lib/local/espejo";
+import { useSesion } from "@/components/SesionProvider";
 import { clampPlacement, type Placement } from "@/lib/placement";
 import type { AvatarParams } from "@/lib/types";
 
@@ -26,7 +30,8 @@ const DEFAULT: Placement = { x: 0.5, y: 0.02, w: 0.86, h: 0 };
  * colocadas respecto a ese mismo maniquí, caen donde tienen que caer.
  */
 export function BodyPhoto({ avatar }: { avatar: AvatarParams }) {
-  const router = useRouter();
+  const { uid } = useSesion();
+  const refrescar = useEspejo((s) => s.refrescar);
   const [step, setStep] = useState<Step>("resumen");
   const [preview, setPreview] = useState<string | null>(null);
   const [blob, setBlob] = useState<Blob | null>(null);
@@ -68,18 +73,15 @@ export function BodyPhoto({ avatar }: { avatar: AvatarParams }) {
     setError(null);
     try {
       const definitiva = await trimTransparent(retocado ?? blob);
-      const body = new FormData();
-      body.append("file", blobToFile(definitiva, "cuerpo.png"));
-      const upload = await fetch("/api/upload", { method: "POST", body });
-      const uploaded = await upload.json();
-      if (!upload.ok) throw new Error(uploaded.error ?? "No se pudo subir la foto");
+      const ruta = await subirFoto(definitiva, uid!);
+      // Ya la tenemos en memoria: guardarla evita descargarla acto seguido.
+      await guardarFotoLocal(uid!, ruta, definitiva);
 
-      await persist({ photoUrl: uploaded.url, ...placement });
+      await persist({ photoUrl: ruta, ...placement });
       if (preview) URL.revokeObjectURL(preview);
       setPreview(null);
       setBlob(null);
       setStep("resumen");
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Algo ha fallado");
     } finally {
@@ -89,18 +91,22 @@ export function BodyPhoto({ avatar }: { avatar: AvatarParams }) {
 
   /** Guarda la foto junto al resto de medidas, que la API espera completas. */
   async function persist(photo: { photoUrl: string | null } & Partial<Placement>) {
-    await fetch("/api/avatar", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    if (!uid) return;
+    await guardarAvatar(
+      uid,
+      {
         ...avatar,
         photoUrl: photo.photoUrl,
         photoX: photo.x ?? avatar.photoX,
         photoY: photo.y ?? avatar.photoY,
         photoW: photo.w ?? avatar.photoW,
         photoH: photo.h ?? avatar.photoH,
-      }),
-    });
+      },
+      // La foto anterior deja de estar referenciada: que no se quede ocupando
+      // sitio en el almacén para siempre.
+      avatar.photoUrl,
+    );
+    await refrescar();
   }
 
   async function remove() {
@@ -108,7 +114,6 @@ export function BodyPhoto({ avatar }: { avatar: AvatarParams }) {
     setSaving(true);
     await persist({ photoUrl: null });
     setSaving(false);
-    router.refresh();
   }
 
   return (
@@ -121,11 +126,10 @@ export function BodyPhoto({ avatar }: { avatar: AvatarParams }) {
             {avatar.photoUrl ? (
               <div className="edge flex gap-4 rounded-2xl bg-surface p-4">
                 <div className="relative h-32 w-20 shrink-0 overflow-hidden rounded-xl bg-display">
-                  <Image
-                    src={avatar.photoUrl}
+                  <Foto
+                    ruta={avatar.photoUrl}
                     alt="Tu foto de cuerpo entero"
                     fill
-                    sizes="80px"
                     className="object-contain"
                   />
                 </div>
@@ -273,7 +277,6 @@ export function BodyPhoto({ avatar }: { avatar: AvatarParams }) {
                 await persist({ photoUrl: avatar.photoUrl, ...placement });
                 setSaving(false);
                 setStep("resumen");
-                router.refresh();
               }}
             >
               Guardar

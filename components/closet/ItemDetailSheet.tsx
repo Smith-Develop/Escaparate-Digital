@@ -1,13 +1,16 @@
 "use client";
 
-import Image from "next/image";
+import { Foto } from "@/components/ui/Foto";
 import { useRouter } from "next/navigation";
+import { actualizarPrenda, borrarPrenda } from "@/lib/datos/prendas";
+import { useEspejo } from "@/lib/local/espejo";
 import { useState } from "react";
 import { Sheet } from "@/components/ui/Sheet";
 import { Button } from "@/components/ui/Button";
 import { PlacementPanel } from "@/components/closet/PlacementPanel";
 import { bodyReference, clampPlacement, type Placement } from "@/lib/placement";
-import { CATEGORIES, SEASONS, colorsWith, labelFor, occasionsWith } from "@/lib/taxonomy";
+import { centimosATexto } from "@/lib/dinero";
+import { CATEGORIES, colorsWith, labelFor, occasionsWith, seasonsWith } from "@/lib/taxonomy";
 import { useOutfit } from "@/lib/store";
 import type { AvatarParams, Item, Tag } from "@/lib/types";
 
@@ -15,6 +18,7 @@ type Props = { item: Item | null; avatar: AvatarParams; tags: Tag[]; onClose: ()
 
 export function ItemDetailSheet({ item, avatar, tags, onClose }: Props) {
   const router = useRouter();
+  const refrescar = useEspejo((s) => s.refrescar);
   const toggleEquipped = useOutfit((s) => s.toggle);
   const [busy, setBusy] = useState(false);
   const [placing, setPlacing] = useState<Placement | null>(null);
@@ -25,14 +29,12 @@ export function ItemDetailSheet({ item, avatar, tags, onClose }: Props) {
     ["Categoría", labelFor(CATEGORIES, item.category)],
     ["Tipo", item.subcategory],
     ["Color", labelFor(colorsWith(tags), item.color)],
-    ["Temporada", labelFor(SEASONS, item.season)],
+    ["Temporada", labelFor(seasonsWith(tags), item.season)],
     ["Ocasión", labelFor(occasionsWith(tags), item.occasion)],
     ...(item.brand ? ([["Marca", item.brand]] as [string, string][]) : []),
     ...(item.size ? ([["Talla", item.size]] as [string, string][]) : []),
     ...(item.priceCents !== null
-      ? ([["Precio", (item.priceCents / 100).toLocaleString("es-ES", {
-          minimumFractionDigits: 2,
-        })]] as [string, string][])
+      ? ([["Precio", centimosATexto(item.priceCents)]] as [string, string][])
       : []),
     ...(item.purchasedAt
       ? ([[
@@ -48,27 +50,33 @@ export function ItemDetailSheet({ item, avatar, tags, onClose }: Props) {
       : []),
   ];
 
-  async function patch(body: Record<string, unknown>) {
+  async function patch(cambios: Parameters<typeof actualizarPrenda>[1]) {
     if (!item) return;
     setBusy(true);
-    await fetch(`/api/items/${item.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    setBusy(false);
-    router.refresh();
-    onClose();
+    try {
+      await actualizarPrenda(item.id, cambios);
+      await refrescar();
+      onClose();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "No se ha podido guardar");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function remove() {
     if (!item) return;
     if (!confirm(`¿Eliminar "${item.name}" del armario?`)) return;
     setBusy(true);
-    await fetch(`/api/items/${item.id}`, { method: "DELETE" });
-    setBusy(false);
-    router.refresh();
-    onClose();
+    try {
+      await borrarPrenda(item);
+      await refrescar();
+      onClose();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "No se ha podido borrar");
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (placing) {
@@ -112,11 +120,11 @@ export function ItemDetailSheet({ item, avatar, tags, onClose }: Props) {
       {/* `fill` en vez de un tamaño fijo: con una altura relativa, una imagen de
           tamaño intrínseco se desbordaba de la caja y tapaba los datos. */}
       <div className="relative h-[30vh] max-h-72 w-full overflow-hidden rounded-2xl border border-line bg-display">
-        <Image
-          src={item.imageUrl}
+        <Foto
+          ruta={item.imageUrl}
           alt={item.name}
+          color={item.dominantColor}
           fill
-          sizes="(max-width: 512px) 90vw, 460px"
           className="object-contain p-4"
         />
       </div>

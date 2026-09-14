@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { Foto } from "@/components/ui/Foto";
 import { CATEGORIES } from "@/lib/taxonomy";
 import { useCarrusel } from "@/components/studio/useCarrusel";
 import type { Item } from "@/lib/types";
@@ -125,8 +125,8 @@ export function CategoryRail({
                     onClick={() => onToggle(item.id)}
                     label={item.name}
                   >
-                    <Image
-                      src={item.imageUrl}
+                    <Foto
+                      ruta={item.imageUrl}
                       alt={item.name}
                       width={64}
                       height={64}
@@ -172,8 +172,8 @@ export function CategoryRail({
                     onClick={() => elegir(item.id)}
                     label={item.name}
                   >
-                    <Image
-                      src={item.imageUrl}
+                    <Foto
+                      ruta={item.imageUrl}
                       alt={item.name}
                       width={64}
                       height={64}

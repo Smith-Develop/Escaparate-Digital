@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { Foto } from "@/components/ui/Foto";
 import { motion } from "framer-motion";
 import { colorHex } from "@/lib/taxonomy";
 import type { Item } from "@/lib/types";
@@ -28,11 +28,11 @@ export function ItemCard({ item, onClick, selected, index = 0 }: Props) {
       ].join(" ")}
     >
       <span className="relative block aspect-square w-full bg-display p-3">
-        <Image
-          src={item.imageUrl}
+        <Foto
+          ruta={item.imageUrl}
           alt={item.name}
+          color={item.dominantColor}
           fill
-          sizes="(max-width: 512px) 33vw, 160px"
           className="object-contain p-3"
         />
         {item.favorite && (

@@ -81,9 +81,6 @@ export function StudioView({ avatar, items, looks, initialLookId }: Props) {
     [byCategory],
   );
 
-  const equippedIn = (category: string) =>
-    equipped.find((i) => LAYER_BY_CATEGORY[i.category] === LAYER_BY_CATEGORY[category]) ?? null;
-
   /** Puestas de esa categoría. Solo los accesorios pueden ser más de una. */
   const equippedAllIn = (category: string) =>
     equipped

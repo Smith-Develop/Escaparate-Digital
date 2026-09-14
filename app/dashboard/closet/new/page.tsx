@@ -1,29 +1,23 @@
-import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+"use client";
+
 import { Header } from "@/components/layout/Header";
+import { Titulo } from "@/components/Titulo";
 import { AddItemFlow } from "@/components/closet/AddItemFlow";
+import { useEspejo } from "@/lib/local/espejo";
 
-export const metadata = { title: "Añadir prenda · Escaparate" };
-export const dynamic = "force-dynamic";
-
-export default async function NewItemPage() {
-  const user = await getCurrentUser();
-  if (!user) return null;
-
-  const [existente, tags] = await Promise.all([
-    prisma.avatar.findUnique({ where: { userId: user.id } }),
-    prisma.tag.findMany({ where: { userId: user.id }, orderBy: { createdAt: "asc" } }),
-  ]);
-  const avatar = existente ?? (await prisma.avatar.create({ data: { userId: user.id } }));
+export default function NewItemPage() {
+  const avatar = useEspejo((s) => s.avatar);
+  const tags = useEspejo((s) => s.tags);
 
   return (
     <>
+      <Titulo>Añadir prenda</Titulo>
       <Header
         title="Nueva prenda"
         subtitle="Fotografía, recorte y catalogación"
         back="/dashboard/closet"
       />
-      <AddItemFlow avatar={avatar} tags={tags} />
+      {avatar && <AddItemFlow avatar={avatar} tags={tags} />}
     </>
   );
 }

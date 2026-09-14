@@ -7,7 +7,16 @@
       "Bash(node looks-rail.mjs /tmp/claude-1000/-home-jhon-Documentos-Escaparate/badfb83e-c412-4eef-ba8d-59cfb027ff5b/scratchpad/cookie.txt /tmp/claude-1000/-home-jhon-Documentos-Escaparate/badfb83e-c412-4eef-ba8d-59cfb027ff5b/scratchpad/shots)",
       "Bash(python3 -)",
       "Bash(node actualizar-look.mjs /tmp/claude-1000/-home-jhon-Documentos-Escaparate/badfb83e-c412-4eef-ba8d-59cfb027ff5b/scratchpad/cookie.txt)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(npx prisma *)",
+      "Bash(docker --version)",
+      "Bash(docker run *)",
+      "Bash(docker exec *)",
+      "Bash(break)",
+      "Read(//var/run/**)",
+      "Bash(docker context *)",
+      "Bash(systemctl is-active *)",
+      "Bash(curl -s -o /dev/null -w \"app: %{http_code}\\\\n\" http://localhost:3000/dashboard/closet)"
     ]
   }
 }

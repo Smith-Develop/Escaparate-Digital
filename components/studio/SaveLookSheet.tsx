@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { actualizarLook, crearLook } from "@/lib/datos/looks";
+import { useEspejo } from "@/lib/local/espejo";
+import { useSesion } from "@/components/SesionProvider";
 import { Sheet } from "@/components/ui/Sheet";
 import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Field";
@@ -21,7 +23,8 @@ type Props = { open: boolean; onClose: () => void };
  * la fecha programada.
  */
 export function SaveLookSheet({ open, onClose }: Props) {
-  const router = useRouter();
+  const { uid } = useSesion();
+  const refrescar = useEspejo((s) => s.refrescar);
   const equipped = useOutfit((s) => s.equipped);
   const editingLook = useOutfit((s) => s.editingLook);
   const setEditingLook = useOutfit((s) => s.setEditingLook);
@@ -51,39 +54,33 @@ export function SaveLookSheet({ open, onClose }: Props) {
 
   async function save(comoNuevo: boolean) {
     const actualizar = Boolean(editingLook) && !comoNuevo;
+    if (!uid) return;
     setSaving(true);
     setError(null);
     try {
-      const response = await fetch(
-        actualizar ? `/api/looks/${editingLook!.id}` : "/api/looks",
-        {
-          method: actualizar ? "PATCH" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: name.trim() || "Look sin nombre",
-            occasion,
-            scheduledAt: scheduledAt || null,
-            itemIds,
-          }),
-        },
-      );
-      const json = await response.json();
-      if (!response.ok) throw new Error(json.error ?? "No se pudo guardar el look");
+      const datos = {
+        name: name.trim() || "Look sin nombre",
+        occasion,
+        scheduledAt: scheduledAt || null,
+        itemIds,
+      };
+
+      const id = actualizar
+        ? (await actualizarLook(editingLook!.id, datos), editingLook!.id)
+        : await crearLook(datos, uid);
 
       // Se adopta el look resultante: volver a guardar lo actualiza en vez de
       // ir dejando copias, y el carrusel lo muestra marcado al refrescarse.
-      if (json.look) {
-        setEditingLook({
-          id: json.look.id,
-          name: json.look.name,
-          occasion: json.look.occasion,
-          scheduledAt: json.look.scheduledAt ?? null,
-        });
-      }
+      setEditingLook({
+        id,
+        name: datos.name,
+        occasion: datos.occasion,
+        scheduledAt: datos.scheduledAt,
+      });
       setGuardado(true);
       setSaving(false);
       // Se refresca sin salir del estudio: es donde se están probando looks.
-      router.refresh();
+      await refrescar();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Algo ha fallado");
       setSaving(false);

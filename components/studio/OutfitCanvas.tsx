@@ -1,5 +1,6 @@
 "use client";
 
+import { Foto } from "@/components/ui/Foto";
 import { AspectCanvas } from "@/components/ui/AspectCanvas";
 import { placementStyle, resolveHeight } from "@/lib/placement";
 import type { Item } from "@/lib/types";
@@ -49,9 +50,8 @@ export function OutfitCanvas({
       )}
 
       {body && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={body.imageUrl}
+        <Foto
+          ruta={body.imageUrl}
           alt="Tu foto"
           draggable={false}
           loading={carga}
@@ -61,10 +61,10 @@ export function OutfitCanvas({
         />
       )}
       {items.map((item) => (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Foto
           key={item.id}
-          src={item.imageUrl}
+          ruta={item.imageUrl}
+          color={item.dominantColor}
           alt={item.name}
           draggable={false}
           loading={carga}

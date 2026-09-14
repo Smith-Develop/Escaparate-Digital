@@ -1,12 +1,15 @@
-import Link from "next/link";
-import Image from "next/image";
-import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
-import { Header } from "@/components/layout/Header";
-import { EmptyState } from "@/components/ui/EmptyState";
+"use client";
 
-export const metadata = { title: "Inicio · Escaparate" };
-export const dynamic = "force-dynamic";
+import Link from "next/link";
+import { useMemo } from "react";
+import { Header } from "@/components/layout/Header";
+import { Titulo } from "@/components/Titulo";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Foto } from "@/components/ui/Foto";
+import { Stat } from "@/components/ui/Stat";
+import { centimosRedondeados } from "@/lib/dinero";
+import { useEspejo } from "@/lib/local/espejo";
+import { useSesion } from "@/components/SesionProvider";
 
 const QUICK_ACTIONS = [
   { href: "/dashboard/closet/new", label: "Añadir ropa", icon: "📸" },
@@ -14,37 +17,47 @@ const QUICK_ACTIONS = [
   { href: "/dashboard/looks", label: "Calendario", icon: "🗓️" },
 ] as const;
 
-export default async function DashboardPage() {
-  const user = await getCurrentUser();
-  if (!user) return null;
+export default function DashboardPage() {
+  const items = useEspejo((s) => s.items);
+  const looks = useEspejo((s) => s.looks);
+  const perfil = useEspejo((s) => s.perfil);
+  const { nombre } = useSesion();
 
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
+  const invertido = useMemo(
+    () => items.reduce((suma, i) => suma + (i.priceCents ?? 0), 0),
+    [items],
+  );
 
-  const [itemCount, lookCount, avatar, recentItems, nextLook] = await Promise.all([
-    prisma.item.count({ where: { userId: user.id } }),
-    prisma.look.count({ where: { userId: user.id } }),
-    prisma.avatar.findUnique({ where: { userId: user.id } }),
-    prisma.item.findMany({
-      where: { userId: user.id },
-      orderBy: { createdAt: "desc" },
-      take: 6,
-    }),
-    prisma.look.findFirst({
-      where: { userId: user.id, scheduledAt: { gte: startOfToday } },
-      orderBy: { scheduledAt: "asc" },
-      include: { items: { include: { item: true }, orderBy: { position: "asc" } } },
-    }),
-  ]);
+  // Lo último catalogado. El armario llega ordenado con las favoritas delante,
+  // así que aquí hay que reordenar por fecha.
+  const recientes = useMemo(
+    () => [...items].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, 6),
+    [items],
+  );
+
+  const proximo = useMemo(() => {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    return looks
+      .filter((l) => l.scheduledAt && new Date(l.scheduledAt) >= hoy)
+      .sort((a, b) => (a.scheduledAt! < b.scheduledAt! ? -1 : 1))[0];
+  }, [looks]);
+
+  const saludo = (perfil?.name ?? nombre ?? "").split(" ")[0];
 
   return (
     <>
-      <Header title={`Hola, ${user.name.split(" ")[0]}`} subtitle="Tu armario, siempre a mano." />
+      <Titulo>Inicio</Titulo>
+      <Header title={saludo ? `Hola, ${saludo}` : "Hola"} subtitle="Tu armario, siempre a mano." />
 
       <div className="grid grid-cols-3 gap-3 px-5">
-        <Stat value={itemCount} label="Prendas" />
-        <Stat value={lookCount} label="Looks" />
-        <Stat value={avatar?.heightCm ?? 170} label="Altura cm" />
+        <Stat value={items.length} label="Prendas" />
+        <Stat value={looks.length} label="Looks" />
+        <Stat
+          value={centimosRedondeados(invertido)}
+          label="Invertido"
+          href="/dashboard/closet/inversion"
+        />
       </div>
 
       <nav className="mt-6 grid grid-cols-3 gap-3 px-5">
@@ -62,7 +75,7 @@ export default async function DashboardPage() {
         ))}
       </nav>
 
-      {nextLook && (
+      {proximo && (
         <section className="mt-8 px-5">
           <SectionTitle>Próximo look</SectionTitle>
           <Link
@@ -70,14 +83,12 @@ export default async function DashboardPage() {
             className="edge mt-3 flex items-center gap-4 rounded-2xl bg-surface p-4"
           >
             <div className="flex -space-x-4">
-              {nextLook.items.slice(0, 3).map(({ item }) => (
-                <span
-                  key={item.id}
-                  className="edge size-12 overflow-hidden rounded-xl bg-display"
-                >
-                  <Image
-                    src={item.imageUrl}
+              {proximo.items.slice(0, 3).map((item) => (
+                <span key={item.id} className="edge size-12 overflow-hidden rounded-xl bg-display">
+                  <Foto
+                    ruta={item.imageUrl}
                     alt={item.name}
+                    color={item.dominantColor}
                     width={48}
                     height={48}
                     className="size-full object-contain"
@@ -86,11 +97,11 @@ export default async function DashboardPage() {
               ))}
             </div>
             <div className="min-w-0">
-              <p className="truncate font-display text-lg">{nextLook.name}</p>
+              <p className="truncate font-display text-lg">{proximo.name}</p>
               <p className="text-sm text-ink-muted">
-                {/* En UTC, igual que se guardó: convertir a la zona del
-                    servidor movería el día que eligió el usuario. */}
-                {nextLook.scheduledAt?.toLocaleDateString("es-ES", {
+                {/* En UTC, igual que se guardó: convertir a la zona local
+                    movería el día que eligió el usuario. */}
+                {new Date(proximo.scheduledAt!).toLocaleDateString("es-ES", {
                   weekday: "long",
                   day: "numeric",
                   month: "long",
@@ -105,14 +116,14 @@ export default async function DashboardPage() {
       <section className="mt-8 flex-1 px-5 pb-24">
         <div className="flex items-baseline justify-between">
           <SectionTitle>Añadido recientemente</SectionTitle>
-          {itemCount > 0 && (
+          {items.length > 0 && (
             <Link href="/dashboard/closet" className="text-sm text-accent">
               Ver todo
             </Link>
           )}
         </div>
 
-        {recentItems.length === 0 ? (
+        {recientes.length === 0 ? (
           <div className="mt-3">
             <EmptyState
               icon="👗"
@@ -123,15 +134,16 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <ul className="mt-3 grid grid-cols-3 gap-3">
-            {recentItems.map((item) => (
+            {recientes.map((item) => (
               <li key={item.id}>
                 <Link
                   href="/dashboard/closet"
                   className="edge block aspect-square overflow-hidden rounded-xl bg-display p-2"
                 >
-                  <Image
-                    src={item.imageUrl}
+                  <Foto
+                    ruta={item.imageUrl}
                     alt={item.name}
+                    color={item.dominantColor}
                     width={160}
                     height={160}
                     className="size-full object-contain"
@@ -143,15 +155,6 @@ export default async function DashboardPage() {
         )}
       </section>
     </>
-  );
-}
-
-function Stat({ value, label }: { value: number | string; label: string }) {
-  return (
-    <div className="edge rounded-2xl bg-surface px-3 py-4 text-center">
-      <p className="tabular font-display text-3xl leading-none">{value}</p>
-      <p className="mt-1.5 text-[11px] uppercase tracking-wider text-ink-faint">{label}</p>
-    </div>
   );
 }
 

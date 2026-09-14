@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { Foto } from "@/components/ui/Foto";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -10,10 +10,15 @@ import { SiluetaGuia } from "@/components/closet/SiluetaGuia";
 import { EMPTY_DRAFT, ItemForm, type ItemDraft } from "@/components/closet/ItemForm";
 import { PlacementPanel } from "@/components/closet/PlacementPanel";
 import { bodyReference, defaultPlacement, type Placement } from "@/lib/placement";
+import { precioACentimos } from "@/lib/dinero";
+import { subirFoto } from "@/lib/datos/fotos";
+import { crearPrenda } from "@/lib/datos/prendas";
+import { guardarFotoLocal } from "@/lib/local/fotos";
+import { useEspejo } from "@/lib/local/espejo";
+import { useSesion } from "@/components/SesionProvider";
 import type { AvatarParams, Tag } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import {
-  blobToFile,
   dominantColor,
   downscale,
   imageSize,
@@ -22,13 +27,6 @@ import {
 } from "@/lib/image";
 
 type Step = "captura" | "procesando" | "retoque" | "detalles" | "colocacion";
-
-/** Convierte «39,90» o «39.90» en 3990 céntimos. */
-function precioACentimos(texto: string) {
-  const limpio = texto.replace(/[^0-9.,]/g, "").replace(",", ".");
-  const valor = Number.parseFloat(limpio);
-  return Number.isFinite(valor) ? Math.round(valor * 100) : null;
-}
 
 /**
  * Orquesta el alta de una prenda:
@@ -39,6 +37,8 @@ function precioACentimos(texto: string) {
  */
 export function AddItemFlow({ avatar, tags }: { avatar: AvatarParams; tags: Tag[] }) {
   const router = useRouter();
+  const { uid } = useSesion();
+  const refrescar = useEspejo((s) => s.refrescar);
   const [step, setStep] = useState<Step>("captura");
   const [shot, setShot] = useState<{
     original: Blob;
@@ -88,13 +88,16 @@ export function AddItemFlow({ avatar, tags }: { avatar: AvatarParams; tags: Tag[
     setStep("captura");
   }
 
-  async function upload(blob: Blob, name: string) {
-    const body = new FormData();
-    body.append("file", blobToFile(blob, name));
-    const response = await fetch("/api/upload", { method: "POST", body });
-    const json = await response.json();
-    if (!response.ok) throw new Error(json.error ?? "No se pudo subir la imagen");
-    return json.url as string;
+  /**
+   * Sube una foto y la deja ya guardada en el móvil.
+   *
+   * La acabamos de hacer y la tenemos en memoria, así que no tiene ningún
+   * sentido volver a descargarla del almacén para poder verla.
+   */
+  async function subir(blob: Blob) {
+    const ruta = await subirFoto(blob, uid!);
+    await guardarFotoLocal(uid!, ruta, blob);
+    return ruta;
   }
 
   async function save() {
@@ -109,16 +112,21 @@ export function AddItemFlow({ avatar, tags }: { avatar: AvatarParams; tags: Tag[
       const medidas = await imageSize(definitiva);
 
       const [imageUrl, originalUrl, color] = await Promise.all([
-        upload(definitiva, "prenda.png"),
-        upload(shot.original, "original.jpg"),
+        subir(definitiva),
+        subir(shot.original),
         dominantColor(definitiva),
       ]);
 
-      const response = await fetch("/api/items", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...draft,
+      await crearPrenda(
+        {
+          name: draft.name,
+          category: draft.category,
+          subcategory: draft.subcategory,
+          color: draft.color,
+          season: draft.season,
+          occasion: draft.occasion,
+          brand: draft.brand || null,
+          notes: draft.notes || null,
           imageUrl,
           originalUrl,
           dominantColor: color,
@@ -128,18 +136,17 @@ export function AddItemFlow({ avatar, tags }: { avatar: AvatarParams; tags: Tag[
           placeY: placement.y,
           placeW: placement.w,
           placeH: placement.h ?? 0,
-          size: draft.size,
+          size: draft.size || null,
           // El usuario escribe en su moneda; se guarda en céntimos enteros.
           priceCents: precioACentimos(draft.price),
           purchasedAt: draft.purchasedAt || null,
-        }),
-      });
-      const json = await response.json();
-      if (!response.ok) throw new Error(json.error ?? "No se pudo guardar la prenda");
+        },
+        uid!,
+      );
 
       if (preview) URL.revokeObjectURL(preview);
+      await refrescar();
       router.push("/dashboard/closet");
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Algo ha fallado al guardar");
       setSaving(false);
@@ -230,12 +237,11 @@ export function AddItemFlow({ avatar, tags }: { avatar: AvatarParams; tags: Tag[
           className="flex flex-1 flex-col gap-6 px-5 pb-24"
         >
           <div className="relative grid aspect-square w-full place-items-center overflow-hidden rounded-2xl border border-line bg-checker p-4">
-            <Image
-              src={preview}
+            <Foto
+              ruta={preview}
               alt="Prenda recortada"
               width={512}
               height={512}
-              unoptimized
               className="max-h-full w-auto object-contain"
             />
             <button

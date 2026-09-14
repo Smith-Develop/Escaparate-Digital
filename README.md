@@ -2,91 +2,210 @@
 
 Aplicación web *mobile-first* para digitalizar tu ropa y montar conjuntos con las
 fotos reales de tus prendas, sin abrir el armario.
-
 ## Puesta en marcha
+
+Escaparate no tiene servidor propio: es una aplicación de cliente que habla
+directamente con **tu** Supabase. Hace falta Node 22 o superior.
 
 ```bash
 npm install
-npx prisma db push     # crea prisma/dev.db a partir del esquema
-npm run seed           # opcional: armario de ejemplo
-npm run dev
+cp .env.example .env.local      # y rellena las tres variables de Supabase
+npm run dev                     # http://localhost:3000
 ```
 
-La app queda en <http://localhost:3000>. Con los datos de ejemplo puedes entrar con:
-
-| Correo | Contraseña |
-| --- | --- |
-| `demo@escaparate.app` | `escaparate` |
-
-### Probar desde el móvil
-
-**La cámara solo funciona en `localhost` o sobre HTTPS**: los navegadores
-bloquean `getUserMedia` en orígenes no seguros. Si abres la app por la IP de la
-red local (`npm run dev -- -H 0.0.0.0`) todo funciona salvo la captura de fotos,
-que cae automáticamente al selector de galería. Para probar la cámara necesitas
-un túnel con TLS: los *Dev Tunnels* de VS Code, `ngrok http 3000` o
-`cloudflared tunnel --url http://localhost:3000`.
-
-Esos túneles sirven la app en un dominio público pero reenvían la petición al
-servidor local reescribiendo la cabecera `Origin` a `localhost:3000`, mientras
-que `x-forwarded-host` conserva el dominio del túnel. Next compara las dos para
-protegerse de CSRF, no coinciden, y rechaza las Server Actions con
-**`Invalid Server Actions request`**, lo que rompe el login y el registro.
-
-`next.config.ts` ya lo contempla para los túneles habituales
-(`*.devtunnels.ms`, ngrok, Cloudflare). Si usas otro proveedor, añádelo sin
-tocar código:
+Para dejar la base lista la primera vez, aplica en orden los tres ficheros de
+`supabase/migrations/` en el editor SQL de tu Supabase, y comprueba que todo ha
+quedado en su sitio:
 
 ```bash
-ALLOWED_DEV_ORIGINS="mi-tunel.example.com" npm run dev
+node --env-file=.env.local scripts/comprobar-supabase.mjs
+node --env-file=.env.local scripts/seed-supabase.mjs      # armario de ejemplo
 ```
 
-La excepción **solo se aplica en desarrollo**; la build de producción mantiene la
-comprobación estricta de origen.
+Con los datos de ejemplo puedes entrar con `demo@escaparate.app` / `escaparate`.
 
 ### Variables de entorno
 
-`.env` se crea a partir de `.env.example`:
+| Variable | Qué es |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | La URL de la **API** (el dominio de Supabase), no la cadena de conexión a PostgreSQL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | La clave anónima. Es pública por diseño: viaja dentro de la app y quien protege los datos es la seguridad por filas |
+| `NEXT_PUBLIC_SUPABASE_SCHEMA` | El esquema donde viven las tablas, por si la instancia es compartida |
+| `SUPABASE_SERVICE_ROLE_KEY` | Solo para los scripts de carga inicial, desde tu máquina. **Se salta la seguridad por filas**: nunca en el navegador ni en un repositorio |
 
-- `DATABASE_URL` — por defecto `file:./dev.db` (SQLite).
-- `AUTH_SECRET` — cámbialo en producción.
-- `ALLOWED_DEV_ORIGINS` — opcional, orígenes extra permitidos al desarrollar
-  detrás de un túnel (ver más abajo).
+Las tres primeras se resuelven **al compilar**, no al arrancar: al desplegar en
+Coolify hay que declararlas como variables de compilación.
+
+## Cómo se reparte
+
+| Destino | Cómo |
+| --- | --- |
+| **Web** | `npm run build` deja el sitio en `out/`; el `Dockerfile` lo sirve con nginx |
+| **Android** | Capacitor mete `out/` dentro del APK: `npx cap sync android && cd android && ./gradlew assembleDebug` |
+| **iPhone** | La misma web, instalada desde Safari con «Añadir a pantalla de inicio» |
+
+En el APK **los ficheros viajan dentro**: la app abre sin tocar la red. Por eso
+`capacitor.config.ts` no define `server.url`, que convertiría la aplicación en
+una cáscara que carga la web por internet.
+
+## Sin servidor, y por qué
+
+La versión anterior renderizaba cada pantalla en el servidor consultando SQLite
+por Prisma. Funcionaba, pero sin cobertura no se veía nada: aunque el service
+worker devolviera el HTML cacheado, ese HTML se generaba con los datos del
+usuario en el servidor.
+
+Ahora la interfaz **nunca lee de la red**. Lee de un espejo del armario guardado
+en el propio móvil (IndexedDB), que se refresca por detrás cuando hay conexión:
+
+```
+Interfaz React  →  espejo local (IndexedDB)  ⇄  Supabase
+                   items · looks · tags          Auth · Postgres+RLS
+                   avatar · perfil · fotos       Storage
+```
+
+Consecuencias, todas buscadas:
+
+- **El escaparate se ve en el metro**, con sus fotos, y el estudio y el lookbook
+  también. Para escribir sí hace falta red, y la app lo dice.
+- **Arranca más rápido**, porque no espera a ninguna consulta para pintar.
+- **Ya no hay ruta de API que proteger.** Lo que separa el armario de un usuario
+  del de otro son las políticas de la base (`supabase/migrations/0002_rls.sql`),
+  no un `requireUser()` en cada manejador. La validación que queda en el cliente
+  es ayuda al usuario, no seguridad; lo que no se negocia se comprueba con
+  restricciones `CHECK` en PostgreSQL.
+
+La sincronización se trae **todo**, no solo lo que ha cambiado: un armario son
+cinco consultas y unos cientos de kilobytes, y a cambio no hay que llevar la
+cuenta de qué se editó ni de qué se borró. Lo caro son las fotos, y esas se
+guardan por su ruta y **nunca se descargan dos veces**; del original sin recortar
+ni se hace copia, porque solo sirve para rehacer el recorte, que ya necesita red.
 
 ## Stack
 
-- **Next.js 16** (App Router, Server Actions) y **React 19**
-- **Tailwind CSS v4** + **Framer Motion** para las microinteracciones táctiles
-- **Zustand** para los filtros del armario y el conjunto activo
-- **Prisma** sobre SQLite en local (PostgreSQL en producción, ver más abajo)
-- **@imgly/background-removal** para recortar el fondo de las fotos en el navegador
+- **Next.js 16** en exportación estática (`output: "export"`), React 19, TypeScript
+- **Tailwind CSS v4** con variables de tema
+- **Supabase**: Auth, PostgreSQL con seguridad por filas y Storage privado
+- **Zustand** para el estado y el espejo local; **IndexedDB** a pelo para guardarlo
+- **Framer Motion** para los gestos y las transiciones
+- **@imgly/background-removal** para recortar el fondo en el navegador
+- **Capacitor** para el APK de Android
 
 ## Cómo está organizado
 
 ```
 app/
-├── (auth)/              # registro, login y server actions de sesión
-├── dashboard/
-│   ├── page.tsx         # inicio: estadísticas y accesos rápidos
-│   ├── closet/          # escaparate + alta de prendas (cámara → recorte → ficha)
-│   ├── studio/          # probador 3D
-│   ├── looks/           # lookbook y agenda
-│   └── profile/         # medidas del avatar
-└── api/                 # items, looks, avatar y subida de imágenes
+├── (auth)/              # entrar y registrarse contra Supabase Auth
+├── dashboard/           # inicio, armario, estudio, looks, perfil, inversión
+└── manifest.ts          # manifiesto de la PWA
 components/
-├── ui/                  # botón, chip, campos, hoja inferior
+├── ui/                  # botón, chip, campos, hoja inferior, Foto
 ├── closet/              # cámara, cuadrícula, filtros, ficha y colocación
-├── studio/              # lienzo del conjunto y cajón de ropa
+├── studio/              # lienzo del conjunto, raíl y columna lateral
 ├── looks/               # tarjetas y agenda
-└── layout/              # cabecera y barra de navegación inferior
+├── profile/             # cuenta, foto de cuerpo entero y medidas
+└── SesionProvider.tsx   # quién está dentro
 lib/
+├── supabase/            # el cliente y dónde se guarda la sesión
+├── datos/               # lo que antes eran las rutas de API
+├── local/               # el espejo: IndexedDB, sincronización y fotos
 ├── placement.ts         # colocación de cada prenda en el lienzo
 ├── silhouette.ts        # maniquí de referencia a partir de las medidas
 ├── taxonomy.ts          # categorías, colores, temporadas, ocasiones
-├── store.ts             # estado de filtros y del conjunto equipado
-├── image.ts             # reescalado, recorte de fondo y color dominante
-└── auth.ts              # hash de contraseñas y sesiones en cookie
+├── inversion.ts         # cuánto vale el armario, por categoría, marca y año
+├── dinero.ts            # céntimos, tramos de precio y formato de importes
+└── image.ts             # reescalado, recorte de fondo y color dominante
+supabase/
+├── migrations/          # el esquema, las políticas y el almacén
+├── schema.prisma        # solo para generar el SQL; la app no usa Prisma
+└── pruebas/probar.sh    # levanta un PostgreSQL desechable y prueba las políticas
+scripts/                 # carga de datos, migración, iconos y service worker
+migracion/               # lo que quedó de la versión con servidor (ver su LEEME)
 ```
+
+## Cómo se cataloga una prenda
+
+Además de la categoría, el tipo, el color, la temporada y la ocasión, cada
+prenda guarda **talla**, **precio aproximado** y **fecha de compra**. No son
+adornos: con ellos el armario sirve para saber qué talla se gasta en cada marca,
+cuánto cuesta lo que uno tiene puesto y qué lleva años sin estrenarse. Los tres
+son opcionales y viven en `Item` (`size`, `priceCents`, `purchasedAt`). El precio
+se escribe como se dice —`39,90` o `39.90`— y se guarda en céntimos, que es la
+única forma de no acumular errores de coma flotante.
+
+Las listas de serie cubren lo habitual, pero **el usuario añade las suyas en
+cualquiera de las propiedades**: tipo de prenda, color, temporada y ocasión. Un
+armario real tiene «camiseta oversize», «burdeos», «media estación» o «boda», y
+obligar a encajarlos en una lista cerrada estropea justo lo que hace útil el
+catálogo: el filtrado. Cada fila de etiquetas del formulario lleva un chip
+«+ …» que despliega su gestor ([GestorEtiquetas](components/closet/GestorEtiquetas.tsx)),
+donde se **crean, renombran y borran** las propias; las de serie no se tocan. El
+gestor vive a lo ancho, debajo de la fila, porque dentro del carrusel horizontal
+de chips sus botones se salían de la pantalla por la derecha.
+
+Todas se guardan en `Tag`, una fila por usuario, propiedad y `slug`. Dos detalles
+que conviene tener presentes:
+
+- **Los tipos de prenda cuelgan de una categoría** (`Tag.parent`). «Camiseta» en
+  parte superior y «Camiseta» en abrigos son etiquetas distintas, y cada una solo
+  aparece mientras se cataloga su categoría. La columna es una cadena vacía en el
+  resto de propiedades: un nulo en SQLite no cuenta como repetido y colaría
+  duplicados.
+- **Renombrar no desvincula prendas.** En color, temporada y ocasión la prenda
+  guarda el `slug`, que no cambia nunca: «Burdeos» puede pasar a «Vino tinto» sin
+  tocar una sola prenda. La excepción son los tipos, donde el valor guardado es
+  el propio nombre (`Item.subcategory`), así que el servidor renombra también las
+  prendas afectadas y las dos escrituras van en la misma transacción.
+
+La categoría es la única propiedad cerrada, y a propósito: las cinco de serie
+deciden la capa que ocupa la prenda en el probador, el icono del raíl y su
+colocación por omisión, cosas que una categoría inventada no sabría contestar.
+
+El servidor rechaza los identificadores reservados y los duplicados, y no deja
+borrar una etiqueta que alguna prenda esté usando —dice en cuántas está—, porque
+si no, esas prendas quedarían apuntando a un valor que ya no existe y
+desaparecerían de los filtros sin explicación.
+
+Al mostrar la lista, [lib/taxonomy.ts](lib/taxonomy.ts) une las de serie con las
+propias en un solo array de `Etiqueta`; los componentes no saben —ni les importa—
+de dónde viene cada una.
+
+## Filtrar el armario
+
+El escaparate filtra por **todas** las propiedades que se catalogan: categoría,
+tipo, color, temporada, ocasión, marca, talla, tramo de precio, año de compra y
+favoritas, además de la búsqueda por texto. Las categorías están siempre a la
+vista y el resto vive en un panel desplegable con el número de filtros activos en
+el botón.
+
+Marca, talla, año y tipo **no salen de ninguna lista fija**: se derivan de las
+prendas que hay en el armario, que es lo único que tiene sentido ofrecer —nadie
+quiere filtrar por una marca que no tiene—. Los tipos se acotan además a la
+categoría elegida, y cambiar de categoría suelta el tipo: si no, la cuadrícula se
+quedaría vacía sin que se vea por qué.
+
+«Sin precio» y «Sin fecha» son tramos como los demás, y sirven para lo contrario
+de lo que parece: encontrar las prendas a las que les falta el dato y
+completarlas.
+
+## Cuánto vale el armario
+
+**Armario → Inversión** ([app/dashboard/closet/inversion](app/dashboard/closet/inversion/page.tsx))
+responde a en qué se ha ido el dinero: el total invertido, el precio medio, la
+prenda más cara y el reparto por categoría, por tipo de prenda, por marca y por
+año de compra. El total también aparece en el inicio, y desde ahí se entra.
+
+Todo se calcula en el servidor a partir de las prendas
+([lib/inversion.ts](lib/inversion.ts)); no hay ninguna cifra guardada que pueda
+quedarse desfasada al añadir o borrar ropa. Como el precio es opcional, cada
+grupo cuenta aparte las prendas sin precio: decir «has invertido 340» cuando la
+mitad del armario no tiene precio sería mentir con estadísticas.
+
+Las barras se miden contra el grupo que más suma, no contra el total: comparadas
+con el total, en un armario repartido todas salen igual de cortas y no se
+distingue nada. Y los importes se imprimen sin símbolo de moneda
+([lib/dinero.ts](lib/dinero.ts)) porque la app nunca pregunta en qué moneda
+anotas los precios.
 
 ## Cómo funciona el probador
 
@@ -137,14 +256,25 @@ clave está en que **cada prenda guarda dónde se coloca**.
    o por dentro. La tira «Capas» del estudio muestra ese orden y basta con tocar
    una prenda para ponerla delante. El orden se guarda con el look
    (`LookItem.position`), de modo que al reabrirlo se ve igual.
-4. El botón **Aleatorio** compone un conjunto con el armario entero: una prenda
-   de cada categoría básica y, de vez en cuando, un abrigo o un accesorio.
-5. La colocación se puede corregir en cualquier momento desde la ficha de la
+4. **Una prenda por capa, salvo los accesorios.** Elegir otra camiseta sustituye
+   a la anterior, porque en el torso solo cabe una; en cambio una pulsera, una
+   cadena y unas gafas se llevan a la vez, así que los accesorios se acumulan.
+   Por eso el raíl cambia de comportamiento en esa categoría: en vez del
+   carrusel que viste lo que queda centrado, cada casilla se toca para ponerla o
+   quitarla y hay una casilla «Quitar todos».
+5. El botón **Aleatorio** compone un conjunto con el armario entero: una prenda
+   de cada categoría básica y, de vez en cuando, un abrigo y hasta dos
+   accesorios.
+6. La colocación se puede corregir en cualquier momento desde la ficha de la
    prenda, con «Ajustar colocación».
-6. En **Perfil → Tu foto** se puede hacer una foto de cuerpo entero. Se le
+7. En **Perfil → Tu foto** se puede hacer una foto de cuerpo entero. Se le
    recorta el fondo y se alinea con el maniquí igual que una prenda; a partir de
    ahí es la capa de abajo del probador, con un interruptor para mostrarla u
-   ocultarla.
+   ocultarla. **Apagarla se recuerda**: quien la esconde no quiere encontrársela
+   otra vez al recargar. La preferencia se guarda en el navegador
+   ([lib/preferencias.ts](lib/preferencias.ts)) y se lee con
+   `useSyncExternalStore`, que es lo que evita que el servidor y el cliente
+   pinten cosas distintas al hidratar.
 
 El estudio usa el fondo a sangre en toda la pantalla, con la figura proyectando
 sombra sobre él y gestos de acercamiento: pellizcar amplía, arrastrar recorre y
@@ -189,6 +319,27 @@ estar encuadrada de mil maneras, y ninguna regla automática acierta con todas.
 Colocarla una vez a mano cuesta unos segundos y el resultado es exacto para
 siempre.
 
+## Perfil
+
+El perfil reúne lo que es tuyo y no de la ropa, ordenado por lo que se toca a
+menudo:
+
+- **La cuenta**: nombre —editable ahí mismo—, correo y desde cuándo usas la app.
+  El correo no se cambia desde aquí: es la credencial de entrada, y cambiarlo
+  pide comprobar que el nuevo no está cogido y que sigues siendo tú.
+- **El resumen del armario**: prendas, looks y lo invertido, cada uno enlazando
+  con su pantalla.
+- **Tu foto** de cuerpo entero, que es lo que cambia la cara del probador.
+- **Tus medidas**, plegadas: se ve el maniquí con seis medidas de referencia y
+  el editor completo se despliega al pulsar «Ajustar». Los doce deslizadores
+  ocupaban el perfil entero y se tocan una vez al año.
+- **Apariencia** y **cerrar sesión**.
+
+El tono de piel, el color de pelo y el peinado **ya no están**: eran del avatar
+dibujado que se abandonó y no los leía ningún componente, así que se han quitado
+de la interfaz, de la API y de la tabla `Avatar`. Las medidas sí se quedan,
+porque con ellas se dibuja el maniquí de referencia al colocar cada prenda.
+
 ## Decisiones y limitaciones conocidas
 
 - **Sin avatar.** Se probaron un avatar 3D (Three.js) y un avatar 2D generado a
@@ -202,21 +353,26 @@ siempre.
   primera vez y queda cacheado en el navegador. Si falla —sin red, CDN
   bloqueado— la prenda se guarda con la foto original y se avisa al usuario en
   lugar de bloquear el alta.
-- **Almacenamiento de imágenes.** Las fotos se guardan en `public/uploads/<userId>/`.
-  Es lo correcto en local, pero en un despliegue con sistema de ficheros efímero
-  (Vercel, contenedores) hay que cambiar `app/api/upload/route.ts` por Supabase
-  Storage, S3 o Cloudinary.
-- **Sesiones.** Autenticación propia con `scrypt` y sesiones en base de datos
-  sobre cookie `httpOnly`. Suficiente para el MVP; si necesitas OAuth o enlaces
-  mágicos, el punto de extensión es `lib/auth.ts`.
-
-## Pasar a PostgreSQL
-
-1. En `prisma/schema.prisma`, cambia `provider = "sqlite"` por `"postgresql"`.
-2. Apunta `DATABASE_URL` a tu servidor.
-3. `npx prisma migrate dev --name init`.
-
-El esquema no usa nada específico de SQLite, así que no hace falta tocar más.
+- **Almacenamiento de imágenes.** Las fotos viven en un bucket privado de
+  Supabase, en una carpeta por usuario, y se leen con enlaces firmados de un
+  minuto. Lo que guarda la prenda es la **ruta**, no una URL: las firmadas
+  caducan y una URL guardada dejaría de servir a la hora.
+- **Escribir exige conexión.** Consultar funciona siempre; añadir o editar, no.
+  Se decidió así para la primera versión: una cola de cambios pendientes obliga
+  a decidir qué pasa cuando el mismo dato cambia en dos sitios, y eso es un
+  problema aparte. El esquema ya lleva `updatedAt` en todas las tablas
+  justamente para poder resolverlo más adelante.
+- **En iPhone el sistema puede vaciar el almacén** sin avisar cuando le falta
+  disco, y Safari no concede almacenamiento persistente. No es arreglable, solo
+  sobrevivible: si al abrir hay sesión pero el espejo está vacío, se vuelve a
+  descargar. **El offline realmente fiable es el APK de Android.**
+- **Las contraseñas de la versión anterior no se migran.** Se guardaban con
+  `scrypt` en un formato propio que Supabase no entiende, así que
+  `scripts/migrar-a-supabase.mjs` pide una nueva. El resto de la cuenta sí viaja.
+- **El recorte de fondo pesa.** El tiempo de ejecución de WebAssembly ocupa unos
+  23 MB dentro del APK y el modelo son otros 40 MB que se descargan del CDN de
+  IMG.LY la primera vez. Si falla, la prenda se guarda con la foto original y se
+  avisa, en lugar de bloquear el alta.
 
 ## Sistema de diseño
 
@@ -271,20 +427,34 @@ Cómo está montado, por si hay que tocarlo:
 El manifiesto de la PWA mantiene los colores oscuros: la pantalla de arranque de
 la app instalada es siempre oscura, que es la identidad del producto.
 
-## PWA
+## PWA y service worker
 
-La app se puede instalar en la pantalla de inicio: `app/manifest.ts` define el
-manifiesto y `public/sw.js` cachea el armario y las fotos para poder consultarlo
-sin cobertura. **El service worker solo se registra en la build de producción**
-(`npm run build && npm start`), para no servir respuestas cacheadas durante el
-desarrollo.
+`app/manifest.ts` define el manifiesto y `public/sw.js` guarda la app entera —el
+HTML, el CSS y el JavaScript— para poder abrirla sin cobertura. La lista de
+ficheros **no se escribe a mano**: la genera `scripts/build-sw.mjs` recorriendo
+`out/` al terminar de compilar, porque los fragmentos de JavaScript llevan huella
+en el nombre y cambian en cada build; una lista desactualizada se traduce en una
+pantalla en blanco el primer día sin red.
+
+El service worker **no cachea datos**. El armario y las fotos viven en IndexedDB,
+que es donde la app sabe buscarlos; un service worker cacheando respuestas de la
+API daría la ilusión de funcionar y fallaría al cambiar cualquier parámetro. Solo
+se registra en producción, para no servir respuestas viejas mientras se desarrolla.
+
+Dentro del APK el service worker no interviene —los ficheros ya son locales—, así
+que nada importante depende de él.
 
 ## Scripts
 
 | Comando | Qué hace |
 | --- | --- |
 | `npm run dev` | servidor de desarrollo |
-| `npm run build` / `npm start` | build y arranque de producción |
-| `npm run seed` | recrea la cuenta demo con 12 prendas y 2 looks |
-| `npm run db:push` | sincroniza el esquema con la base de datos |
+| `npm run build` | exportación estática a `out/` + lista del service worker |
+| `node --env-file=.env.local scripts/comprobar-supabase.mjs` | ¿responde tu Supabase? ¿están las tablas y el bucket? |
+| `node --env-file=.env.local scripts/seed-supabase.mjs` | armario de ejemplo (14 prendas, 4 etiquetas, 2 looks) |
+| `node --env-file=.env.local scripts/migrar-a-supabase.mjs --correo … --seco` | sube el armario de la versión con servidor |
+| `node --env-file=.env.local scripts/aplicar-migraciones.mjs --ensayo` | ensaya el SQL contra tu base y lo deshace |
+| `./supabase/pruebas/probar.sh` | levanta un PostgreSQL desechable y comprueba las políticas |
+| `node scripts/generar-iconos.mjs` | rasteriza los iconos a PNG |
+| `npx cap sync android` | mete la última compilación en el proyecto de Android |
 | `npm run lint` | ESLint |

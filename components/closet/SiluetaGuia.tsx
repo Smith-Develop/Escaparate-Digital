@@ -1,5 +1,6 @@
 "use client";
 
+import { Foto } from "@/components/ui/Foto";
 import { Mannequin } from "@/components/closet/Mannequin";
 import type { AvatarParams } from "@/lib/types";
 
@@ -16,9 +17,8 @@ import type { AvatarParams } from "@/lib/types";
 export function SiluetaGuia({ avatar }: { avatar: AvatarParams }) {
   if (avatar.photoUrl) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={avatar.photoUrl}
+      <Foto
+        ruta={avatar.photoUrl}
         alt=""
         aria-hidden
         className="size-full object-contain"

@@ -1,5 +1,6 @@
 "use client";
 
+import { Foto } from "@/components/ui/Foto";
 import { useCallback, useRef, useState } from "react";
 import { Mannequin } from "@/components/closet/Mannequin";
 import { AspectCanvas } from "@/components/ui/AspectCanvas";
@@ -130,9 +131,8 @@ export function PlacementEditor({
         className="edge relative overflow-hidden rounded-2xl bg-display"
       >
       {reference ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={reference.imageUrl}
+        <Foto
+          ruta={reference.imageUrl}
           alt=""
           draggable={false}
           className="pointer-events-none absolute select-none opacity-60"
@@ -148,10 +148,9 @@ export function PlacementEditor({
       )}
 
       {context.map((other) => (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Foto
           key={other.id}
-          src={other.imageUrl}
+          ruta={other.imageUrl}
           alt=""
           draggable={false}
           className="pointer-events-none absolute select-none opacity-35"
@@ -164,9 +163,8 @@ export function PlacementEditor({
       ))}
 
       <div className="absolute" style={box}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={imageUrl}
+        <Foto
+          ruta={imageUrl}
           alt="Prenda que estás colocando"
           draggable={false}
           onPointerDown={(e) => start(e, "mover")}

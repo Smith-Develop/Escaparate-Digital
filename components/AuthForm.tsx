@@ -1,26 +1,72 @@
 "use client";
 
-import { useActionState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Field";
-import type { AuthState } from "@/app/(auth)/actions";
+
+export type DatosAcceso = { name: string; email: string; password: string };
 
 type Props = {
   mode: "login" | "register";
-  action: (prev: AuthState, formData: FormData) => Promise<AuthState>;
+  /**
+   * Devuelve "confirmar-correo" si la cuenta se ha creado pero falta pulsar el
+   * enlace que llega por correo.
+   */
+  onSubmit: (datos: DatosAcceso) => Promise<string | undefined | void>;
 };
 
-export function AuthForm({ mode, action }: Props) {
-  const [state, formAction, pending] = useActionState<AuthState, FormData>(action, {});
+/**
+ * Entrar y registrarse.
+ *
+ * Antes esto iba con una server action y `useActionState`. Ya no hay servidor:
+ * el formulario llama a Supabase Auth desde el propio dispositivo, así que el
+ * estado de envío y el error se llevan a mano, que además permite conservar lo
+ * escrito cuando algo falla.
+ */
+export function AuthForm({ mode, onSubmit }: Props) {
   const isRegister = mode === "register";
+  const [datos, setDatos] = useState<DatosAcceso>({ name: "", email: "", password: "" });
+  const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [confirmar, setConfirmar] = useState(false);
+
+  const set = <K extends keyof DatosAcceso>(clave: K, valor: string) =>
+    setDatos((d) => ({ ...d, [clave]: valor }));
+
+  if (confirmar) {
+    return (
+      <div className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-6">
+        <h1 className="font-display text-2xl">Revisa tu correo</h1>
+        <p className="text-sm leading-relaxed text-ink-muted">
+          Te hemos enviado un enlace a <strong className="text-ink">{datos.email}</strong>. Púlsalo
+          para confirmar la cuenta y luego vuelve aquí para entrar.
+        </p>
+        <p className="text-xs text-ink-faint">
+          Si no aparece en unos minutos, mira en la carpeta de correo no deseado.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <motion.form
-      action={formAction}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-6"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setEnviando(true);
+        setError(null);
+        try {
+          const resultado = await onSubmit(datos);
+          if (resultado === "confirmar-correo") setConfirmar(true);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Algo ha fallado");
+        } finally {
+          setEnviando(false);
+        }
+      }}
     >
       <h1 className="font-display text-2xl">{isRegister ? "Crea tu cuenta" : "Bienvenido"}</h1>
 
@@ -28,12 +74,13 @@ export function AuthForm({ mode, action }: Props) {
         <label className="block">
           <Label>Nombre</Label>
           <Input
-          name="name"
-          autoComplete="name"
-          required
-          placeholder="Alex…"
-          defaultValue={state.values?.name}
-        />
+            name="name"
+            autoComplete="name"
+            required
+            placeholder="Alex…"
+            value={datos.name}
+            onChange={(e) => set("name", e.target.value)}
+          />
         </label>
       )}
 
@@ -46,7 +93,8 @@ export function AuthForm({ mode, action }: Props) {
           autoComplete="email"
           required
           placeholder="alex@correo.com…"
-          defaultValue={state.values?.email}
+          value={datos.email}
+          onChange={(e) => set("email", e.target.value)}
         />
       </label>
 
@@ -59,16 +107,18 @@ export function AuthForm({ mode, action }: Props) {
           required
           minLength={8}
           placeholder="Mínimo 8 caracteres…"
+          value={datos.password}
+          onChange={(e) => set("password", e.target.value)}
         />
       </label>
 
-      {state.error && (
+      {error && (
         <p role="alert" className="rounded-xl bg-danger/10 px-4 py-3 text-sm text-danger">
-          {state.error}
+          {error}
         </p>
       )}
 
-      <Button type="submit" full loading={pending}>
+      <Button type="submit" full loading={enviando}>
         {isRegister ? "Empezar" : "Entrar"}
       </Button>
     </motion.form>

@@ -1,0 +1,194 @@
+// Esquema de Escaparate en PostgreSQL, para Supabase.
+//
+// Este fichero NO lo usa la aplicación: existe solo para generar el SQL de
+// `supabase/migrations/0001_init.sql` con
+//
+//   npx prisma migrate diff --from-empty \
+//       --to-schema-datamodel supabase/schema.prisma --script
+//
+// y por eso no declara generador de cliente. La aplicación habla con Supabase
+// por `supabase-js`, y el SQL generado se retoca a mano para las cosas que
+// Prisma no sabe expresar: los valores por defecto de los identificadores, la
+// clave ajena contra `auth.users`, los disparadores y las políticas de acceso.
+//
+// Dos decisiones deliberadas:
+//
+//   · Los nombres de columna se quedan en camelCase ("userId", "imageUrl"),
+//     aunque en SQL obliguen a comillas. Así las filas que devuelve PostgREST
+//     encajan con `lib/types.ts` sin capa de traducción, que es lo que permite
+//     que los componentes de la interfaz no cambien.
+//   · Los identificadores siguen siendo texto, no uuid. Los generaba el cliente
+//     de Prisma con cuid(); ahora los genera la base con gen_random_uuid()::text
+//     —ver el SQL—, y así los que ya existen se pueden migrar tal cual.
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Datos de la cuenta que no guarda Supabase Auth.
+///
+/// El identificador es el mismo que el de `auth.users`, y el correo NO se
+/// duplica aquí: vive en `auth.users` y la sesión ya lo trae al cliente. Eso
+/// hace estructural lo que hasta ahora era una nota en el código: cambiar de
+/// correo no es editar un campo más del perfil.
+model Profile {
+  id        String   @id @db.Uuid
+  name      String
+  createdAt DateTime @default(now())
+
+  @@map("profiles")
+}
+
+/// Medidas corporales con las que se dibuja el maniquí de referencia.
+///
+/// Los contornos (pecho, cintura, cadera…) se guardan tal como los mide el
+/// usuario con una cinta métrica, en centímetros, y la silueta los convierte a
+/// anchuras de dibujo. Así lo que se introduce es directamente comparable con
+/// la etiqueta de una prenda.
+model Avatar {
+  id     String @id
+  userId String @unique @db.Uuid
+
+  /// Silueta base: neutra | femenina | masculina
+  figure String @default("neutra")
+
+  heightCm Int @default(170)
+  weightKg Int @default(68)
+
+  /// Ancho de hombros de punta a punta.
+  shoulderCm Int @default(42)
+  /// Contorno de pecho o busto.
+  chestCm    Int @default(96)
+  /// Contorno de cintura natural.
+  waistCm    Int @default(80)
+  /// Contorno de cadera por la parte más ancha.
+  hipCm      Int @default(98)
+  /// Contorno de cuello.
+  neckCm     Int @default(37)
+  /// Contorno del muslo.
+  thighCm    Int @default(54)
+  /// Contorno del bíceps.
+  bicepCm    Int @default(30)
+  /// Entrepierna: del tiro al suelo.
+  inseamCm   Int @default(80)
+  /// Largo de brazo del hombro a la muñeca.
+  armCm      Int @default(60)
+  /// Largo del pie.
+  footCm     Int @default(26)
+
+  /// Ruta de la foto de cuerpo entero dentro del bucket `fotos`. Ya no es una
+  /// URL: las firmadas caducan, así que no sirven ni como clave ni como dato.
+  photoUrl String?
+  photoX   Float   @default(0.5)
+  photoY   Float   @default(0.02)
+  photoW   Float   @default(0.86)
+  photoH   Float   @default(0)
+
+  updatedAt DateTime @default(now())
+}
+
+model Item {
+  id          String  @id
+  userId      String  @db.Uuid
+  name        String
+  /// Ruta dentro del bucket `fotos`, no una URL.
+  imageUrl    String
+  /// Foto sin recortar, por si el usuario quiere rehacer el recorte. No se
+  /// descarga al sincronizar: solo hace falta para reeditar, que ya exige red.
+  originalUrl String?
+  imageWidth  Int     @default(0) // 0 = desconocido (se asume cuadrada)
+  imageHeight Int     @default(0)
+
+  /// Colocación de la prenda sobre el lienzo del probador, guardada por el
+  /// usuario al subir la foto. Coordenadas relativas al lienzo (0 a 1):
+  /// centro horizontal, borde superior y anchura.
+  placeX Float @default(0.5)
+  placeY Float @default(0.2)
+  placeW Float @default(0.6)
+  /// Alto, también relativo al lienzo. 0 significa "automático": se calcula de
+  /// la proporción de la foto. En cuanto el usuario estira la prenda para tapar
+  /// una zona, pasa a ser un valor propio independiente del ancho.
+  placeH Float @default(0)
+
+  category      String // superior | inferior | calzado | abrigo | accesorio
+  subcategory   String
+  color         String // etiqueta de color principal
+  dominantColor String @default("#B9B4AC") // hex de la foto; hace de marcador mientras se descarga
+  season        String // verano | invierno | entretiempo | todo-el-ano
+  occasion      String // casual | formal | deporte | trabajo
+  brand         String?
+  notes         String?
+  /// Talla tal como viene en la etiqueta: M, 42, 30x32, única…
+  size          String?
+  /// Precio aproximado en céntimos. Entero para no arrastrar errores de coma
+  /// flotante al sumar el valor del armario.
+  priceCents    Int?
+  /// Cuándo se compró, para saber cuánto lleva en el armario.
+  purchasedAt   DateTime?
+  favorite      Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  /// Nuevo: lo mantiene un disparador. Sin él no hay forma de sincronizar solo
+  /// lo que ha cambiado ni de resolver conflictos cuando se pueda editar sin
+  /// conexión. Cuesta nada añadirlo ahora e imposible reconstruirlo después.
+  updatedAt     DateTime  @default(now())
+
+  lookItems LookItem[]
+
+  @@index([userId, category])
+}
+
+/// Etiqueta creada por el usuario: un tipo de prenda, color, temporada u ocasión.
+///
+/// Las prendas siguen guardando la etiqueta como texto (`Item.color`,
+/// `Item.occasion`…), así que las de serie y las propias conviven sin migrar
+/// nada: la lista que ve el usuario es la unión de ambas.
+model Tag {
+  id     String @id
+  userId String @db.Uuid
+  /// color | ocasion | temporada | tipo
+  kind   String
+  /// A qué categoría pertenece, solo para "tipo": "Camiseta" de superior y de
+  /// abrigo son etiquetas distintas. Cadena vacía en el resto, porque un nulo
+  /// no cuenta como repetido y colaría duplicados.
+  parent String @default("")
+  /// Identificador estable que se guarda en la prenda.
+  slug   String
+  label  String
+  /// Solo para los colores: la muestra que se pinta junto al nombre.
+  hex    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  @@unique([userId, kind, parent, slug])
+  @@index([userId, kind])
+}
+
+model Look {
+  id          String    @id
+  userId      String    @db.Uuid
+  name        String
+  notes       String?
+  occasion    String? // casual | formal | deporte | trabajo
+  scheduledAt DateTime? // día para el que se planifica el conjunto
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now())
+
+  items LookItem[]
+
+  @@index([userId, scheduledAt])
+}
+
+model LookItem {
+  id     String @id
+  lookId String
+  itemId String
+  /// Orden de apilado dentro del conjunto: 0 es la prenda del fondo.
+  position Int @default(0)
+
+  look Look @relation(fields: [lookId], references: [id], onDelete: Cascade)
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([lookId, itemId])
+}

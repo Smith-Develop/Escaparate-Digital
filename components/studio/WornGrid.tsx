@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { Foto } from "@/components/ui/Foto";
 import { AnimatePresence, motion } from "framer-motion";
 import { useOutfit } from "@/lib/store";
 import type { Item } from "@/lib/types";
@@ -40,8 +40,8 @@ export function WornGrid({ items }: { items: Item[] }) {
                     aria-label={`Poner ${item.name} delante`}
                     className="size-full"
                   >
-                    <Image
-                      src={item.imageUrl}
+                    <Foto
+                      ruta={item.imageUrl}
                       alt={item.name}
                       width={48}
                       height={48}

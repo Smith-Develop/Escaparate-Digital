@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { Foto } from "@/components/ui/Foto";
 import Link from "next/link";
 import { useState } from "react";
 import { LookCard } from "@/components/looks/LookCard";
@@ -110,8 +110,8 @@ function Agenda({ looks }: { looks: Look[] }) {
                       key={item.id}
                       className="edge size-10 overflow-hidden rounded-lg bg-display"
                     >
-                      <Image
-                        src={item.imageUrl}
+                      <Foto
+                        ruta={item.imageUrl}
                         alt={item.name}
                         width={40}
                         height={40}

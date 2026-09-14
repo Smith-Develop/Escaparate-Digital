@@ -1,40 +1,51 @@
-import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
-import { lookInclude, lookOrderBy, serializeLook } from "@/lib/looks";
+"use client";
+
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { Header } from "@/components/layout/Header";
+import { Titulo } from "@/components/Titulo";
 import { StudioView } from "@/components/studio/StudioView";
+import { useEspejo } from "@/lib/local/espejo";
 
-export const metadata = { title: "Estudio · Escaparate" };
-export const dynamic = "force-dynamic";
-
-export default async function StudioPage({ searchParams }: PageProps<"/dashboard/studio">) {
-  const user = await getCurrentUser();
-  if (!user) return null;
-
-  const { look: lookId } = await searchParams;
-
-  const [avatar, items, filas] = await Promise.all([
-    prisma.avatar.findUnique({ where: { userId: user.id } }),
-    prisma.item.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" } }),
-    // Todos los conjuntos, para el carrusel de la columna lateral. El que llega
-    // por `?look=` ya está en esta lista, así que no hace falta consultarlo
-    // aparte: basta con pasar su id.
-    prisma.look.findMany({
-      where: { userId: user.id },
-      include: lookInclude,
-      orderBy: lookOrderBy,
-    }),
-  ]);
-
-  const params = avatar ?? (await prisma.avatar.create({ data: { userId: user.id } }));
-
+/**
+ * El estudio llega con `?look=<id>` desde el lookbook.
+ *
+ * Antes ese parámetro lo leía el servidor. Al pasar a cliente hay que usar
+ * `useSearchParams`, y Next exige envolverlo en `<Suspense>` para poder
+ * pregenerar la página: sin eso, la compilación falla.
+ */
+export default function StudioPage() {
   return (
-    <div className="flex flex-1 flex-col pt-safe">
-      <StudioView
-        avatar={params}
-        items={items}
-        looks={filas.map(serializeLook)}
-        initialLookId={typeof lookId === "string" ? lookId : null}
+    <Suspense fallback={<Cargando />}>
+      <Estudio />
+    </Suspense>
+  );
+}
+
+function Cargando() {
+  return (
+    <div className="grid flex-1 place-items-center">
+      <span
+        aria-label="Cargando"
+        className="size-8 animate-spin rounded-full border-2 border-accent border-t-transparent"
       />
     </div>
+  );
+}
+
+function Estudio() {
+  const lookId = useSearchParams().get("look");
+  const items = useEspejo((s) => s.items);
+  const looks = useEspejo((s) => s.looks);
+  const avatar = useEspejo((s) => s.avatar);
+
+  if (!avatar) return <Cargando />;
+
+  return (
+    <>
+      <Titulo>Estudio</Titulo>
+      <Header title="Estudio" subtitle="Combina tus prendas" />
+      <StudioView avatar={avatar} items={items} looks={looks} initialLookId={lookId} />
+    </>
   );
 }

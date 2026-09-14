@@ -1,17 +1,28 @@
-import Link from "next/link";
-import { AuthForm } from "@/components/AuthForm";
-import { loginAction } from "../actions";
+"use client";
 
-export const metadata = { title: "Entrar · Escaparate" };
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { AuthForm } from "@/components/AuthForm";
+import { Titulo } from "@/components/Titulo";
+import { entrar } from "@/lib/auth-cliente";
 
 export default function LoginPage() {
+  const router = useRouter();
+
   return (
     <>
-      <AuthForm mode="login" action={loginAction} />
+      <Titulo>Entrar</Titulo>
+      <AuthForm
+        mode="login"
+        onSubmit={async (datos) => {
+          await entrar({ email: datos.email, password: datos.password });
+          router.replace("/dashboard");
+        }}
+      />
       <p className="mt-6 text-center text-sm text-ink-muted">
-        ¿Aún no tienes cuenta?{" "}
-        <Link href="/register" className="text-accent underline-offset-4 hover:underline">
-          Crear una
+        ¿Aún no tienes armario?{" "}
+        <Link href="/register" className="text-accent underline underline-offset-4">
+          Crea tu cuenta
         </Link>
       </p>
     </>

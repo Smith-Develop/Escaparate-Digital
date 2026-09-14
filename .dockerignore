@@ -1,0 +1,9 @@
+node_modules
+.next
+out
+android
+migracion
+prisma/dev.db
+.env*
+!.env.example
+supabase/pruebas

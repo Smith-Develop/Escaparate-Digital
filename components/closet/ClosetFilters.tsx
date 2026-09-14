@@ -1,27 +1,58 @@
 "use client";
 
+import { useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Chip } from "@/components/ui/Chip";
 import { Input } from "@/components/ui/Field";
-import { CATEGORIES, SEASONS, colorsWith, occasionsWith } from "@/lib/taxonomy";
-import type { Tag } from "@/lib/types";
-import { useCloset } from "@/lib/store";
+import { PRICE_RANGES } from "@/lib/dinero";
+import { CATEGORIES, colorsWith, occasionsWith, seasonsWith } from "@/lib/taxonomy";
+import type { Item, Tag } from "@/lib/types";
+import { añoDeCompra, useCloset } from "@/lib/store";
 
-/** Barra de filtrado del escaparate: pestañas de categoría siempre visibles y
- *  un panel desplegable con color, temporada y ocasión. */
+/**
+ * Barra de filtrado del escaparate.
+ *
+ * Las pestañas de categoría están siempre a la vista y el resto de propiedades
+ * vive en un panel desplegable, para no comerse media pantalla en el móvil.
+ * Marca, talla y año no salen de ninguna lista fija: se sacan de las prendas
+ * que hay en el armario, que es lo único que tiene sentido ofrecer.
+ */
 export function ClosetFilters({
   open,
   onToggle,
+  items,
   tags,
 }: {
   open: boolean;
   onToggle: () => void;
+  items: Item[];
   tags: Tag[];
 }) {
   const { filters, setFilter, resetFilters, activeFilterCount } = useCloset();
   const extraFilters = activeFilterCount() - (filters.category !== "todas" ? 1 : 0);
   const colores = colorsWith(tags);
+  const temporadas = seasonsWith(tags);
   const ocasiones = occasionsWith(tags);
+
+  // Los tipos se acotan a la categoría elegida: «Botas» no pinta nada mientras
+  // se mira la parte superior.
+  const deLaCategoria = useMemo(
+    () =>
+      filters.category === "todas"
+        ? items
+        : items.filter((i) => i.category === filters.category),
+    [items, filters.category],
+  );
+
+  const tipos = useMemo(() => unicos(deLaCategoria.map((i) => i.subcategory)), [deLaCategoria]);
+  const marcas = useMemo(() => unicos(items.map((i) => i.brand ?? "")), [items]);
+  const tallas = useMemo(() => unicos(items.map((i) => i.size ?? "")), [items]);
+  const años = useMemo(() => {
+    const todos = unicos(items.map((i) => añoDeCompra(i)));
+    // Los años, del más reciente al más antiguo, y «sin fecha» al final.
+    return todos.filter((a) => a !== "sin").sort((a, b) => b.localeCompare(a))
+      .concat(todos.includes("sin") ? ["sin"] : []);
+  }, [items]);
 
   return (
     <div className="sticky top-0 z-20 bg-canvas/95 pb-2 backdrop-blur">
@@ -33,7 +64,12 @@ export function ClosetFilters({
           <Chip
             key={category.id}
             active={filters.category === category.id}
-            onClick={() => setFilter("category", category.id)}
+            onClick={() => {
+              setFilter("category", category.id);
+              // El tipo elegido es de la categoría anterior: dejarlo puesto
+              // vaciaría la cuadrícula sin que se vea por qué.
+              setFilter("subcategory", "todas");
+            }}
           >
             <span aria-hidden>{category.icon}</span>
             {category.label}
@@ -53,6 +89,7 @@ export function ClosetFilters({
           type="button"
           onClick={onToggle}
           aria-expanded={open}
+          aria-label="Filtros"
           className={[
             "relative grid size-11 shrink-0 place-items-center rounded-xl border transition-colors",
             open || extraFilters > 0 ? "border-accent text-accent" : "border-line text-ink-muted",
@@ -77,69 +114,140 @@ export function ClosetFilters({
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <div className="flex flex-col gap-3 px-5 pt-3">
+            {/* Nueve filas no caben en una pantalla de móvil: el panel se
+                queda en poco más de media pantalla y se recorre por dentro,
+                para que la cuadrícula de prendas no desaparezca del todo. */}
+            <div className="no-scrollbar flex max-h-[55vh] flex-col gap-3 overflow-y-auto overscroll-contain px-5 pt-3">
+              {tipos.length > 1 && (
+                <FilterRow label="Tipo de prenda">
+                  <Opcion campo="subcategory" valor="todas" etiqueta="Todos" />
+                  {tipos.map((tipo) => (
+                    <Opcion key={tipo} campo="subcategory" valor={tipo} etiqueta={tipo} />
+                  ))}
+                </FilterRow>
+              )}
+
               <FilterRow label="Color">
-                <Chip active={filters.color === "todas"} onClick={() => setFilter("color", "todas")}>
-                  Todos
-                </Chip>
+                <Opcion campo="color" valor="todas" etiqueta="Todos" />
                 {colores.map((color) => (
-                  <Chip
+                  <Opcion
                     key={color.id}
+                    campo="color"
+                    valor={color.id}
+                    etiqueta={color.label}
                     swatch={color.hex}
-                    active={filters.color === color.id}
-                    onClick={() => setFilter("color", color.id)}
-                  >
-                    {color.label}
-                  </Chip>
+                  />
                 ))}
               </FilterRow>
 
               <FilterRow label="Temporada">
-                <Chip active={filters.season === "todas"} onClick={() => setFilter("season", "todas")}>
-                  Todas
-                </Chip>
-                {SEASONS.map((season) => (
-                  <Chip
-                    key={season.id}
-                    active={filters.season === season.id}
-                    onClick={() => setFilter("season", season.id)}
-                  >
-                    {season.label}
-                  </Chip>
+                <Opcion campo="season" valor="todas" etiqueta="Todas" />
+                {temporadas.map((season) => (
+                  <Opcion key={season.id} campo="season" valor={season.id} etiqueta={season.label} />
                 ))}
               </FilterRow>
 
               <FilterRow label="Ocasión">
-                <Chip
-                  active={filters.occasion === "todas"}
-                  onClick={() => setFilter("occasion", "todas")}
-                >
-                  Todas
-                </Chip>
+                <Opcion campo="occasion" valor="todas" etiqueta="Todas" />
                 {ocasiones.map((occasion) => (
-                  <Chip
+                  <Opcion
                     key={occasion.id}
-                    active={filters.occasion === occasion.id}
-                    onClick={() => setFilter("occasion", occasion.id)}
-                  >
-                    {occasion.label}
-                  </Chip>
+                    campo="occasion"
+                    valor={occasion.id}
+                    etiqueta={occasion.label}
+                  />
                 ))}
               </FilterRow>
 
-              <button
-                type="button"
-                onClick={resetFilters}
-                className="self-start pb-2 text-sm text-ink-muted underline underline-offset-4"
-              >
-                Limpiar filtros
-              </button>
+              {marcas.length > 0 && (
+                <FilterRow label="Marca">
+                  <Opcion campo="brand" valor="todas" etiqueta="Todas" />
+                  {marcas.map((marca) => (
+                    <Opcion key={marca} campo="brand" valor={marca} etiqueta={marca} />
+                  ))}
+                </FilterRow>
+              )}
+
+              {tallas.length > 0 && (
+                <FilterRow label="Talla">
+                  <Opcion campo="size" valor="todas" etiqueta="Todas" />
+                  {tallas.map((talla) => (
+                    <Opcion key={talla} campo="size" valor={talla} etiqueta={talla} />
+                  ))}
+                </FilterRow>
+              )}
+
+              <FilterRow label="Precio">
+                <Opcion campo="price" valor="todas" etiqueta="Cualquiera" />
+                {PRICE_RANGES.map((rango) => (
+                  <Opcion key={rango.id} campo="price" valor={rango.id} etiqueta={rango.label} />
+                ))}
+              </FilterRow>
+
+              {años.length > 0 && (
+                <FilterRow label="Año de compra">
+                  <Opcion campo="year" valor="todas" etiqueta="Cualquiera" />
+                  {años.map((año) => (
+                    <Opcion
+                      key={año}
+                      campo="year"
+                      valor={año}
+                      etiqueta={año === "sin" ? "Sin fecha" : año}
+                    />
+                  ))}
+                </FilterRow>
+              )}
+
+              <div className="flex items-center justify-between pb-2 pt-1">
+                <Chip
+                  active={filters.favorite}
+                  onClick={() => setFilter("favorite", !filters.favorite)}
+                >
+                  <span aria-hidden>★</span> Solo favoritas
+                </Chip>
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="text-sm text-ink-muted underline underline-offset-4"
+                >
+                  Limpiar filtros
+                </button>
+              </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
     </div>
   );
+}
+
+/** Chip de un valor concreto de un filtro. */
+function Opcion({
+  campo,
+  valor,
+  etiqueta,
+  swatch,
+}: {
+  campo: "subcategory" | "color" | "season" | "occasion" | "brand" | "size" | "price" | "year";
+  valor: string;
+  etiqueta: string;
+  swatch?: string;
+}) {
+  const { filters, setFilter } = useCloset();
+  return (
+    <Chip
+      swatch={swatch}
+      active={filters[campo] === valor}
+      onClick={() => setFilter(campo, valor)}
+    >
+      {etiqueta}
+    </Chip>
+  );
+}
+
+/** Valores distintos, sin vacíos y en orden alfabético. */
+function unicos(valores: string[]) {
+  return [...new Set(valores.filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"));
 }
 
 function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {

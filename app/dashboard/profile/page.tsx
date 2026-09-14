@@ -1,61 +1,81 @@
-import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
-import { logoutAction } from "@/app/(auth)/actions";
+"use client";
+
 import { Header } from "@/components/layout/Header";
-import { AvatarEditor } from "@/components/profile/AvatarEditor";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { Titulo } from "@/components/Titulo";
+import { AccountCard } from "@/components/profile/AccountCard";
 import { BodyPhoto } from "@/components/profile/BodyPhoto";
+import { MeasuresSection } from "@/components/profile/MeasuresSection";
+import { CerrarSesion } from "@/components/profile/CerrarSesion";
+import { Espacio } from "@/components/profile/Espacio";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { Stat } from "@/components/ui/Stat";
+import { centimosRedondeados } from "@/lib/dinero";
+import { useEspejo } from "@/lib/local/espejo";
+import { useSesion } from "@/components/SesionProvider";
 
-export const metadata = { title: "Perfil · Escaparate" };
-export const dynamic = "force-dynamic";
+/**
+ * Perfil: la cuenta, la foto con la que se viste y las medidas del maniquí.
+ *
+ * Ordenado por lo que se toca a menudo: arriba quién eres y el resumen del
+ * armario; en medio la foto, que es lo que cambia la cara del probador; y abajo
+ * las medidas y los ajustes, que se tocan una vez y se olvidan.
+ */
+export default function ProfilePage() {
+  const { email } = useSesion();
+  const items = useEspejo((s) => s.items);
+  const looks = useEspejo((s) => s.looks);
+  const avatar = useEspejo((s) => s.avatar);
+  const perfil = useEspejo((s) => s.perfil);
 
-export default async function ProfilePage() {
-  const user = await getCurrentUser();
-  if (!user) return null;
-
-  const avatar =
-    (await prisma.avatar.findUnique({ where: { userId: user.id } })) ??
-    (await prisma.avatar.create({ data: { userId: user.id } }));
-
-  const [itemCount, lookCount] = await Promise.all([
-    prisma.item.count({ where: { userId: user.id } }),
-    prisma.look.count({ where: { userId: user.id } }),
-  ]);
+  const invertido = items.reduce((suma, i) => suma + (i.priceCents ?? 0), 0);
 
   return (
     <>
-      <Header title="Tus medidas" subtitle={`${user.name} · ${user.email}`} />
+      <Titulo>Perfil</Titulo>
+      <Header title="Perfil" />
 
-      <section className="mx-5 mb-6 rounded-2xl border border-line bg-surface p-4">
-        <p className="text-sm leading-relaxed text-ink-muted">
-          Con estas medidas se dibuja el maniquí de referencia que aparece al colocar cada
-          prenda, para que la sitúes sobre tus propias proporciones. Si además te haces una
-          foto de cuerpo entero, el probador montará los conjuntos sobre ti.
-        </p>
-        <p className="mt-3 text-xs text-ink-faint">
-          {itemCount} prendas · {lookCount} looks guardados
-        </p>
-      </section>
+      <div className="flex flex-col gap-8 pb-24">
+        <AccountCard
+          name={perfil?.name ?? "…"}
+          email={email ?? ""}
+          photoUrl={avatar?.photoUrl ?? null}
+          since={(perfil?.createdAt ?? new Date()).toLocaleDateString("es-ES", {
+            month: "long",
+            year: "numeric",
+            timeZone: "UTC",
+          })}
+        />
 
-      <div className="mb-8">
-        <BodyPhoto avatar={avatar} />
+        <div className="grid grid-cols-3 gap-3 px-5">
+          <Stat value={items.length} label="Prendas" href="/dashboard/closet" />
+          <Stat value={looks.length} label="Looks" href="/dashboard/looks" />
+          <Stat
+            value={centimosRedondeados(invertido)}
+            label="Invertido"
+            href="/dashboard/closet/inversion"
+          />
+        </div>
+
+        {avatar && <BodyPhoto avatar={avatar} />}
+        {avatar && <MeasuresSection avatar={avatar} />}
+
+        <section className="px-5">
+          <h2 className="mb-2 text-xs uppercase tracking-[0.14em] text-ink-faint">Apariencia</h2>
+          <ThemeToggle />
+        </section>
+
+        <section className="px-5">
+          <h2 className="mb-2 text-xs uppercase tracking-[0.14em] text-ink-faint">
+            En este dispositivo
+          </h2>
+          <Espacio />
+        </section>
+
+        <section className="px-5">
+          <h2 className="mb-2 text-xs uppercase tracking-[0.14em] text-ink-faint">Cuenta</h2>
+          <CerrarSesion />
+        </section>
       </div>
-
-      <section className="mx-5 mb-8">
-        <h2 className="mb-2 text-xs uppercase tracking-[0.14em] text-ink-faint">Apariencia</h2>
-        <ThemeToggle />
-      </section>
-
-      <AvatarEditor initial={avatar} />
-
-      <form action={logoutAction} className="px-5 pb-24">
-        <button
-          type="submit"
-          className="min-h-11 w-full rounded-full border border-line text-sm text-ink-muted"
-        >
-          Cerrar sesión
-        </button>
-      </form>
     </>
   );
 }

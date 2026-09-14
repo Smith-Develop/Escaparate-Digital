@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import { ServiceWorker } from "@/components/ServiceWorker";
+import { SesionProvider } from "@/components/SesionProvider";
 import { ThemeSync } from "@/components/ThemeSync";
 import { THEME_BOOTSTRAP } from "@/lib/theme";
 
@@ -14,6 +15,14 @@ export const metadata: Metadata = {
     "Digitaliza tu ropa y monta conjuntos con las fotos reales de tus prendas.",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Escaparate" },
+  // En iOS el icono de la pantalla de inicio sale de aquí, no del manifiesto.
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
@@ -30,7 +39,7 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="es"
@@ -41,7 +50,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col bg-canvas text-ink">
         {/* Se ejecuta antes de pintar: evita el destello de tema equivocado. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
-        {children}
+        <SesionProvider>{children}</SesionProvider>
         <ThemeSync />
         <ServiceWorker />
       </body>

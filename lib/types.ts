@@ -27,12 +27,16 @@ export type Item = {
   /** Las fechas cruzan el límite servidor/cliente como objetos `Date`. */
   purchasedAt: Date | null;
   favorite: boolean;
+  /** Cuándo se catalogó; ordena «añadido recientemente». */
+  createdAt: Date;
 };
 
-/** Color u ocasión creada por el propio usuario. */
+/** Etiqueta creada por el propio usuario: tipo, color, temporada u ocasión. */
 export type Tag = {
   id: string;
   kind: string;
+  /** Categoría de la que cuelga, solo en las de tipo; vacío en las demás. */
+  parent: string;
   slug: string;
   label: string;
   hex: string | null;
@@ -60,9 +64,6 @@ export type AvatarParams = {
   photoY: number;
   photoW: number;
   photoH: number;
-  skinTone: string;
-  hairColor: string;
-  hairStyle: string;
 };
 
 /**

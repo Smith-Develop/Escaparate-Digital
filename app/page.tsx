@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSesion } from "@/components/SesionProvider";
 
 const STEPS = [
   { n: "01", title: "Fotografía", text: "Dispara con el móvil y el fondo desaparece solo." },
@@ -8,8 +11,15 @@ const STEPS = [
   { n: "03", title: "Combina", text: "Monta el conjunto y guárdalo en el calendario." },
 ];
 
-export default async function LandingPage() {
-  if (await getCurrentUser()) redirect("/dashboard");
+export default function LandingPage() {
+  const router = useRouter();
+  const { estado } = useSesion();
+
+  // Quien ya ha entrado no necesita la presentación. Dentro del APK esta
+  // pantalla casi no se ve: se abre con la sesión puesta.
+  useEffect(() => {
+    if (estado === "dentro") router.replace("/dashboard");
+  }, [estado, router]);
 
   return (
     <main className="flex flex-1 flex-col px-6 pb-safe pt-safe">

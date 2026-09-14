@@ -1,8 +1,9 @@
 "use client";
 
-import Image from "next/image";
+import { Foto } from "@/components/ui/Foto";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { actualizarLook, borrarLook } from "@/lib/datos/looks";
+import { useEspejo } from "@/lib/local/espejo";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { OCCASIONS, labelFor } from "@/lib/taxonomy";
@@ -23,25 +24,31 @@ const formatDate = (iso: string) => {
 };
 
 export function LookCard({ look, index }: { look: Look; index: number }) {
-  const router = useRouter();
+  const refrescar = useEspejo((s) => s.refrescar);
   const [busy, setBusy] = useState(false);
 
   async function remove() {
     if (!confirm(`¿Eliminar el look "${look.name}"?`)) return;
     setBusy(true);
-    await fetch(`/api/looks/${look.id}`, { method: "DELETE" });
-    router.refresh();
+    try {
+      await borrarLook(look.id);
+      await refrescar();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "No se ha podido borrar");
+      setBusy(false);
+    }
   }
 
   async function schedule(value: string) {
     setBusy(true);
-    await fetch(`/api/looks/${look.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ scheduledAt: value || null }),
-    });
-    setBusy(false);
-    router.refresh();
+    try {
+      await actualizarLook(look.id, { scheduledAt: value || null });
+      await refrescar();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "No se ha podido guardar");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -76,8 +83,8 @@ export function LookCard({ look, index }: { look: Look; index: number }) {
             key={item.id}
             className="edge size-16 shrink-0 rounded-xl bg-display p-1.5"
           >
-            <Image
-              src={item.imageUrl}
+            <Foto
+              ruta={item.imageUrl}
               alt={item.name}
               width={64}
               height={64}

@@ -55,14 +55,15 @@ export const FIGURES = [
 ] as const;
 
 /**
- * Medidas que se pueden ajustar del avatar, con los límites y la explicación de
- * cómo tomarlas. Una medida mal tomada estropea la silueta, así que cada campo
+ * Medidas del cuerpo, con los límites y la explicación de cómo tomarlas. Una medida mal tomada estropea la silueta, así que cada campo
  * lleva su propia indicación.
  */
 export const MEASUREMENTS = [
   {
     key: "heightCm",
     label: "Altura",
+    /** Nombre corto, para el resumen del perfil. */
+    short: "Altura",
     unit: "cm",
     min: 140,
     max: 210,
@@ -72,6 +73,8 @@ export const MEASUREMENTS = [
   {
     key: "weightKg",
     label: "Peso",
+    /** Nombre corto, para el resumen del perfil. */
+    short: "Peso",
     unit: "kg",
     min: 35,
     max: 180,
@@ -81,6 +84,8 @@ export const MEASUREMENTS = [
   {
     key: "shoulderCm",
     label: "Ancho de hombros",
+    /** Nombre corto, para el resumen del perfil. */
+    short: "Hombros",
     unit: "cm",
     min: 30,
     max: 62,
@@ -90,6 +95,8 @@ export const MEASUREMENTS = [
   {
     key: "chestCm",
     label: "Contorno de pecho",
+    /** Nombre corto, para el resumen del perfil. */
+    short: "Pecho",
     unit: "cm",
     min: 60,
     max: 150,
@@ -99,6 +106,8 @@ export const MEASUREMENTS = [
   {
     key: "waistCm",
     label: "Contorno de cintura",
+    /** Nombre corto, para el resumen del perfil. */
+    short: "Cintura",
     unit: "cm",
     min: 50,
     max: 150,
@@ -108,6 +117,8 @@ export const MEASUREMENTS = [
   {
     key: "hipCm",
     label: "Contorno de cadera",
+    /** Nombre corto, para el resumen del perfil. */
+    short: "Cadera",
     unit: "cm",
     min: 60,
     max: 165,
@@ -117,6 +128,8 @@ export const MEASUREMENTS = [
   {
     key: "neckCm",
     label: "Contorno de cuello",
+    /** Nombre corto, para el resumen del perfil. */
+    short: "Cuello",
     unit: "cm",
     min: 28,
     max: 55,
@@ -126,6 +139,8 @@ export const MEASUREMENTS = [
   {
     key: "bicepCm",
     label: "Contorno de bíceps",
+    /** Nombre corto, para el resumen del perfil. */
+    short: "Bíceps",
     unit: "cm",
     min: 18,
     max: 60,
@@ -135,6 +150,8 @@ export const MEASUREMENTS = [
   {
     key: "armCm",
     label: "Largo de brazo",
+    /** Nombre corto, para el resumen del perfil. */
+    short: "Brazo",
     unit: "cm",
     min: 40,
     max: 82,
@@ -144,6 +161,8 @@ export const MEASUREMENTS = [
   {
     key: "thighCm",
     label: "Contorno de muslo",
+    /** Nombre corto, para el resumen del perfil. */
+    short: "Muslo",
     unit: "cm",
     min: 35,
     max: 95,
@@ -153,6 +172,8 @@ export const MEASUREMENTS = [
   {
     key: "inseamCm",
     label: "Entrepierna",
+    /** Nombre corto, para el resumen del perfil. */
+    short: "Entrepierna",
     unit: "cm",
     min: 55,
     max: 108,
@@ -162,6 +183,8 @@ export const MEASUREMENTS = [
   {
     key: "footCm",
     label: "Largo de pie",
+    /** Nombre corto, para el resumen del perfil. */
+    short: "Pie",
     unit: "cm",
     min: 19,
     max: 34,
@@ -174,38 +197,82 @@ export type MeasurementKey = (typeof MEASUREMENTS)[number]["key"];
 
 export const MEASUREMENT_GROUPS = ["Generales", "Torso", "Extremidades"] as const;
 
-export const HAIR_STYLES = [
-  { id: "rapado", label: "Rapado" },
-  { id: "corto", label: "Corto" },
-  { id: "medio", label: "Medio" },
-  { id: "largo", label: "Largo" },
-] as const;
-
-export const SKIN_TONES = ["#F2D6C0", "#E5BE9C", "#C89F7B", "#A97B52", "#7B5335", "#4E3322"];
-export const HAIR_COLORS = ["#1C1613", "#2B2118", "#5A3A22", "#8A6034", "#C7A15A", "#9B9B9B"];
-
 /* ── Etiquetas propias ─────────────────────────────────────────────────────
-   Los colores y las ocasiones de serie cubren lo habitual, pero cada armario
-   tiene sus rarezas. El usuario puede añadir las suyas y conviven con las de
-   serie: la prenda guarda el identificador como texto, así que no hay que
-   migrar nada ni distinguirlas al filtrar.                                  */
+   Las listas de serie cubren lo habitual, pero cada armario tiene sus rarezas:
+   «burdeos», «boda», «media estación», «camiseta oversize». El usuario puede
+   añadir las suyas en cualquiera de las propiedades y conviven con las de
+   serie: la prenda guarda el valor como texto, así que no hay que migrar nada
+   ni distinguirlas al filtrar.
+
+   La categoría es la excepción a propósito. Las cinco de serie no son una
+   etiqueta más: deciden la capa que ocupa la prenda en el probador, el icono
+   del raíl y dónde se coloca por omisión. Una categoría inventada no sabría
+   contestar a nada de eso.                                                   */
+
+/** Propiedades de una prenda a las que se pueden añadir etiquetas propias. */
+export const TAG_KINDS = ["tipo", "color", "temporada", "ocasion"] as const;
+export type TagKind = (typeof TAG_KINDS)[number];
+
+export const TAG_KIND_LABEL: Record<TagKind, string> = {
+  tipo: "tipo de prenda",
+  color: "color",
+  temporada: "temporada",
+  ocasion: "ocasión",
+};
+
+/** Con su artículo y su concordancia, para el aviso de nombre repetido. */
+export const TAG_KIND_YA_TIENES: Record<TagKind, string> = {
+  tipo: "un tipo de prenda llamado",
+  color: "un color llamado",
+  temporada: "una temporada llamada",
+  ocasion: "una ocasión llamada",
+};
 
 export type Etiqueta = {
   id: string;
   label: string;
   hex?: string;
-  /** Las propias se pueden borrar; las de serie no. */
+  /** Las propias se pueden renombrar y borrar; las de serie no. */
   propia?: boolean;
+  /** Identificador de la fila en la base de datos, solo en las propias. */
+  tagId?: string;
 };
 
-type TagBruta = { kind: string; slug: string; label: string; hex: string | null };
+type TagBruta = {
+  id?: string;
+  kind: string;
+  parent?: string;
+  slug: string;
+  label: string;
+  hex: string | null;
+};
 
-/** Une las etiquetas de serie con las del usuario, sin duplicar identificadores. */
-function unir(base: readonly Etiqueta[], propias: TagBruta[], kind: string): Etiqueta[] {
+/**
+ * Une las etiquetas de serie con las del usuario, sin duplicar identificadores.
+ *
+ * `identidad` decide qué guarda la prenda. En color, temporada y ocasión es el
+ * `slug`, un identificador estable que sobrevive a los cambios de nombre. En
+ * los tipos de prenda es el propio nombre, porque eso es lo que lleva
+ * guardando `Item.subcategory` desde el principio y cambiarlo obligaría a
+ * migrar el armario entero.
+ */
+function unir(
+  base: readonly Etiqueta[],
+  propias: TagBruta[],
+  kind: TagKind,
+  parent = "",
+  identidad: (t: TagBruta) => string = (t) => t.slug,
+): Etiqueta[] {
   const conocidos = new Set(base.map((e) => e.id));
   const extra = propias
-    .filter((t) => t.kind === kind && !conocidos.has(t.slug))
-    .map((t) => ({ id: t.slug, label: t.label, hex: t.hex ?? undefined, propia: true }));
+    .filter((t) => t.kind === kind && (t.parent ?? "") === parent && !conocidos.has(identidad(t)))
+    .map((t) => ({
+      id: identidad(t),
+      label: t.label,
+      hex: t.hex ?? undefined,
+      propia: true,
+      tagId: t.id,
+    }));
   return [...base, ...extra];
 }
 
@@ -214,6 +281,27 @@ export const colorsWith = (propias: TagBruta[]) =>
 
 export const occasionsWith = (propias: TagBruta[]) =>
   unir(OCCASIONS.map((o) => ({ id: o.id, label: o.label })), propias, "ocasion");
+
+export const seasonsWith = (propias: TagBruta[]) =>
+  unir(SEASONS.map((s) => ({ id: s.id, label: s.label })), propias, "temporada");
+
+/** Tipos de prenda de una categoría. El identificador es el propio nombre. */
+export const typesWith = (propias: TagBruta[], category: string) =>
+  unir(
+    (SUBCATEGORIES[category as CategoryId] ?? []).map((s) => ({ id: s, label: s })),
+    propias,
+    "tipo",
+    category,
+    (t) => t.label,
+  );
+
+/** Etiquetas de serie de una propiedad, cuyos identificadores están reservados. */
+export function builtInIds(kind: TagKind, parent = ""): readonly string[] {
+  if (kind === "color") return COLOR_IDS;
+  if (kind === "ocasion") return OCCASION_IDS;
+  if (kind === "temporada") return SEASON_IDS;
+  return (SUBCATEGORIES[parent as CategoryId] ?? []).map(slugify);
+}
 
 /** Convierte un nombre escrito por el usuario en un identificador estable. */
 export function slugify(texto: string) {
@@ -233,7 +321,6 @@ export const COLOR_IDS = ids(COLORS);
 export const SEASON_IDS = ids(SEASONS);
 export const OCCASION_IDS = ids(OCCASIONS);
 export const FIGURE_IDS = ids(FIGURES);
-export const HAIR_STYLE_IDS = ids(HAIR_STYLES);
 
 export function labelFor(list: readonly { id: string; label: string }[], id: string) {
   return list.find((x) => x.id === id)?.label ?? id;

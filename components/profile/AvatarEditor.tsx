@@ -1,34 +1,40 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { guardarAvatar } from "@/lib/datos/avatar";
+import { useEspejo } from "@/lib/local/espejo";
+import { useSesion } from "@/components/SesionProvider";
 import { AnimatePresence, motion } from "framer-motion";
 import { Mannequin } from "@/components/closet/Mannequin";
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
 import { Label } from "@/components/ui/Field";
-import {
-  FIGURES,
-  HAIR_COLORS,
-  HAIR_STYLES,
-  MEASUREMENTS,
-  MEASUREMENT_GROUPS,
-  SKIN_TONES,
-} from "@/lib/taxonomy";
+import { FIGURES, MEASUREMENTS, MEASUREMENT_GROUPS } from "@/lib/taxonomy";
 import type { AvatarParams } from "@/lib/types";
 
 /**
  * Editor de medidas.
  *
- * Cada valor se puede ajustar con el deslizador o escribir a mano, y el dibujo
- * de la izquierda se actualiza al momento: es el mismo componente que usa el
- * probador, así que lo que se ve aquí es exactamente lo que llevará la ropa.
+ * Cada valor se puede ajustar con el deslizador o escribir a mano, y el maniquí
+ * de arriba se redibuja al momento: es el mismo que sale al colocar una prenda,
+ * así que lo que se ve aquí es exactamente la figura sobre la que se coloca la
+ * ropa. Ya no hay tono de piel ni peinado: eran del avatar dibujado que se
+ * abandonó, y no los leía nadie.
  */
-export function AvatarEditor({ initial }: { initial: AvatarParams }) {
-  const router = useRouter();
+export function AvatarEditor({
+  initial,
+  onSaved,
+}: {
+  initial: AvatarParams;
+  /** Se avisa al guardar para que el perfil pueda volver al resumen. */
+  onSaved?: () => void;
+}) {
+  const { uid } = useSesion();
+  const refrescar = useEspejo((s) => s.refrescar);
   const [params, setParams] = useState<AvatarParams>(initial);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [fallo, setFallo] = useState<string | null>(null);
   const [group, setGroup] = useState<string>(MEASUREMENT_GROUPS[0]);
 
   const set = <K extends keyof AvatarParams>(key: K, value: AvatarParams[K]) => {
@@ -37,15 +43,18 @@ export function AvatarEditor({ initial }: { initial: AvatarParams }) {
   };
 
   async function save() {
+    if (!uid) return;
     setSaving(true);
-    await fetch("/api/avatar", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(params),
-    });
-    setSaving(false);
-    setSaved(true);
-    router.refresh();
+    try {
+      await guardarAvatar(uid, params);
+      setSaved(true);
+      await refrescar();
+      onSaved?.();
+    } catch (error) {
+      setFallo(error instanceof Error ? error.message : "No se han podido guardar");
+    } finally {
+      setSaving(false);
+    }
   }
 
   const bmi = params.weightKg / (params.heightCm / 100) ** 2;
@@ -55,7 +64,7 @@ export function AvatarEditor({ initial }: { initial: AvatarParams }) {
     <div className="flex flex-col gap-6 pb-4">
       {/* La figura acompaña al desplazamiento: se ve el efecto de cada ajuste. */}
       <div className="sticky top-0 z-10 bg-canvas/95 px-5 pb-3 pt-1 backdrop-blur">
-        <div className="mx-auto h-64 w-full max-w-56">
+        <div className="mx-auto h-56 w-full max-w-48">
           <Mannequin avatar={params} className="size-full text-accent" />
         </div>
       </div>
@@ -113,34 +122,12 @@ export function AvatarEditor({ initial }: { initial: AvatarParams }) {
         </motion.div>
       </AnimatePresence>
 
-      <div className="flex flex-col gap-6 px-5">
-        <Swatches
-          label="Tono de piel"
-          colors={SKIN_TONES}
-          value={params.skinTone}
-          onChange={(v) => set("skinTone", v)}
-        />
-        <Swatches
-          label="Color de pelo"
-          colors={HAIR_COLORS}
-          value={params.hairColor}
-          onChange={(v) => set("hairColor", v)}
-        />
-        <div>
-          <Label>Peinado</Label>
-          <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5">
-            {HAIR_STYLES.map((h) => (
-              <Chip
-                key={h.id}
-                active={params.hairStyle === h.id}
-                onClick={() => set("hairStyle", h.id)}
-              >
-                {h.label}
-              </Chip>
-            ))}
-          </div>
-        </div>
-
+      <div className="px-5">
+        {fallo && (
+          <p role="alert" className="mb-3 rounded-xl bg-danger/10 px-4 py-3 text-sm text-danger">
+            {fallo}
+          </p>
+        )}
         <Button full onClick={save} loading={saving}>
           {saved ? "Medidas guardadas ✓" : "Guardar medidas"}
         </Button>
@@ -199,40 +186,6 @@ function Measure({
         className="h-2 w-full cursor-pointer appearance-none rounded-full bg-surface-2 accent-[var(--color-accent)]"
       />
       {help && <p className="mt-1.5 text-xs leading-relaxed text-ink-faint">{help}</p>}
-    </div>
-  );
-}
-
-function Swatches({
-  label,
-  colors,
-  value,
-  onChange,
-}: {
-  label: string;
-  colors: string[];
-  value: string;
-  onChange: (color: string) => void;
-}) {
-  return (
-    <div>
-      <Label>{label}</Label>
-      <div className="flex gap-3">
-        {colors.map((color) => (
-          <button
-            key={color}
-            type="button"
-            onClick={() => onChange(color)}
-            aria-label={color}
-            aria-pressed={value === color}
-            style={{ background: color }}
-            className={[
-              "size-10 rounded-full border-2 transition-transform",
-              value === color ? "scale-110 border-accent" : "border-line",
-            ].join(" ")}
-          />
-        ))}
-      </div>
     </div>
   );
 }

@@ -4,34 +4,34 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "build": "next build && node scripts/build-sw.mjs",
     "lint": "eslint",
-    "seed": "node prisma/seed.mjs",
-    "db:push": "prisma db push",
-    "postinstall": "prisma generate",
-    "predev": "prisma generate",
-    "prebuild": "prisma generate"
+    "apk": "./scripts/apk.sh",
+    "supabase:comprobar": "node --env-file=.env.local scripts/comprobar-supabase.mjs",
+    "supabase:seed": "node --env-file=.env.local scripts/seed-supabase.mjs"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/preferences": "^8.0.1",
     "@imgly/background-removal": "^1.7.0",
-    "@prisma/client": "^6.19.3",
+    "@supabase/supabase-js": "^2.116.0",
     "framer-motion": "^13.2.0",
     "next": "16.3.5",
     "onnxruntime-web": "^1.21.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "server-only": "^0.0.1",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
-    "prisma": "^6.19.3",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
