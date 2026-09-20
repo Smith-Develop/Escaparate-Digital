@@ -5,6 +5,8 @@ import { useMemo } from "react";
 import { BotonCabecera, Header } from "@/components/layout/Header";
 import { Titulo } from "@/components/Titulo";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { BotonCompartir, IconoCompartir } from "@/components/ui/BotonCompartir";
+import { compartirEnlace } from "@/lib/compartir";
 import { AnilloPuntuacion } from "@/components/inicio/Graficos";
 import { GraficosInversion, ResumenInversion } from "@/components/inicio/ResumenInversion";
 import { Foto } from "@/components/ui/Foto";
@@ -56,12 +58,27 @@ export default function DashboardPage() {
         title={saludo ? `Hola, ${saludo}` : "Hola"}
         subtitle="Tu armario, siempre a mano."
         action={
-          <BotonCabecera href="/dashboard/profile" label="Tu perfil">
+          <div className="flex items-center gap-2">
+            <BotonCompartir
+              label="Compartir Escaparate con alguien"
+              className="edge grid size-10 shrink-0 place-items-center rounded-full bg-surface text-ink"
+              onCompartir={() =>
+                compartirEnlace(
+                  "Escaparate",
+                  "Mi armario entero en el móvil, con probador y todo. Échale un ojo:",
+                )
+              }
+            >
+              <IconoCompartir />
+            </BotonCompartir>
+
+            <BotonCabecera href="/dashboard/profile" label="Tu perfil">
             <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <circle cx="12" cy="8" r="3.5" />
               <path d="M4.5 20a7.5 7.5 0 0 1 15 0" />
-            </svg>
-          </BotonCabecera>
+              </svg>
+            </BotonCabecera>
+          </div>
         }
       />
 

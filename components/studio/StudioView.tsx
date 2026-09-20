@@ -14,6 +14,10 @@ import { LAYER_BY_CATEGORY } from "@/lib/taxonomy";
 import { bodyReference } from "@/lib/placement";
 import { randomOutfit, useOutfit } from "@/lib/store";
 import { degradadoDelConjunto } from "@/lib/paleta";
+import { componerConjunto } from "@/lib/lienzoConjunto";
+import { compartirImagen } from "@/lib/compartir";
+import { BotonCompartir, IconoCompartir } from "@/components/ui/BotonCompartir";
+import { useSesion } from "@/components/SesionProvider";
 import {
   escribirBooleana,
   leerBooleana,
@@ -49,6 +53,7 @@ export function StudioView({ avatar, items, looks, initialLookId }: Props) {
   const loadLook = useOutfit((s) => s.loadLook);
   const editingLook = useOutfit((s) => s.editingLook);
 
+  const { uid } = useSesion();
   const [category, setCategory] = useState("superior");
   const [saveOpen, setSaveOpen] = useState(false);
   // La decisión de apagar la foto se recuerda: volver a encenderla al recargar
@@ -211,14 +216,35 @@ export function StudioView({ avatar, items, looks, initialLookId }: Props) {
               {editingLook ? `Editando «${editingLook.name}»` : "Desliza para probar"}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setSaveOpen(true)}
-            disabled={equipped.length === 0}
-            className="min-h-10 shrink-0 rounded-full bg-accent px-5 text-sm font-semibold text-on-accent disabled:opacity-40"
-          >
-            {editingLook ? "Actualizar" : "Guardar look"}
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {/* La imagen se compone con las fotos del espejo, así que esto
+                también funciona sin conexión. */}
+            <BotonCompartir
+              label="Compartir una foto del conjunto"
+              className="edge grid size-10 place-items-center rounded-full bg-surface text-ink disabled:opacity-40"
+              onCompartir={async () => {
+                if (!uid || equipped.length === 0) return "imposible";
+                const imagen = await componerConjunto(uid, equipped, photo, editingLook?.name);
+                return compartirImagen(
+                  imagen,
+                  "conjunto.png",
+                  editingLook?.name ?? "Mi conjunto",
+                  "Montado con Escaparate",
+                );
+              }}
+            >
+              <IconoCompartir />
+            </BotonCompartir>
+
+            <button
+              type="button"
+              onClick={() => setSaveOpen(true)}
+              disabled={equipped.length === 0}
+              className="min-h-10 rounded-full bg-accent px-5 text-sm font-semibold text-on-accent disabled:opacity-40"
+            >
+              {editingLook ? "Actualizar" : "Guardar look"}
+            </button>
+          </div>
         </div>
 
         <CategoryRail

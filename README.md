@@ -250,6 +250,8 @@ distingue nada. Los importes van en euros, con el símbolo detrás y separado co
 se escribe en español ([lib/dinero.ts](lib/dinero.ts)), y ese fichero es el único
 que habría que tocar para cambiar de moneda.
 
+Los importes van en euros, con el símbolo detrás y separado.
+
 El anillo de categorías cuenta **prendas**, no dinero. Repartiendo el gasto, una
 categoría sin precios anotados desaparecía del anillo, y con medio armario sin
 precio parecía que solo había camisetas.
@@ -549,6 +551,26 @@ Con todo, `lib/auth-cliente.ts` **no da por hecho** que el servidor esté así: 
 el alta no devuelve sesión, intenta entrar acto seguido, y solo si el servidor
 contesta «email not confirmed» enseña la pantalla de «revisa tu correo». Así, el
 día que alguien cambie ese ajuste, la app lo cuenta en vez de quedarse muda.
+
+## Compartir
+
+Dos botones, y detrás tres caminos distintos según dónde corra la app
+([lib/compartir.ts](lib/compartir.ts)): en el APK el WebView de Android no trae
+`navigator.share`, así que se usa el complemento de Capacitor —y para mandar una
+imagen hay que escribirla antes en disco, porque comparte ficheros, no datos en
+memoria—; en la web móvil `navigator.share` sí existe y admite ficheros; y en
+escritorio, donde no suele haber nada de eso, se copia el enlace y se avisa. La
+función devuelve qué acabó pasando para que la interfaz lo cuente: compartir en
+silencio y que el usuario no sepa si ha funcionado es peor que no ofrecerlo.
+
+La dirección que se comparte viene de `NEXT_PUBLIC_SITIO_URL`, porque dentro del
+APK `location.origin` es `https://localhost` y no le sirve a nadie.
+
+**La foto del conjunto** ([lib/lienzoConjunto.ts](lib/lienzoConjunto.ts)) se
+compone en un lienzo de 1080×1920 repitiendo la misma colocación que se ve en
+pantalla, con el fondo teñido por la ropa puesta y la firma abajo. Las fotos
+salen del espejo local, así que **también se puede compartir sin conexión**: si
+se ve el conjunto, se puede mandar.
 
 ## La barra de navegación y el alto de la pantalla
 

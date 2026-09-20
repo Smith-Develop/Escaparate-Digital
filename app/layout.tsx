@@ -43,7 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="es"
-      data-theme="oscuro"
+      data-theme="claro"
       className={`${geistSans.variable} h-full antialiased`}
       suppressHydrationWarning
     >

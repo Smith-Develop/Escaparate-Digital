@@ -33,15 +33,20 @@ export default function LandingPage() {
       <Adornos />
 
       <div className="relative z-10 flex flex-1 flex-col">
-        <p className="py-2 text-center text-xs font-semibold tracking-[0.3em] text-ink-muted">
+        <p className="py-1.5 text-center text-xs font-semibold tracking-[0.3em] text-ink-muted sm:py-2">
           ESCAPARATE
         </p>
 
-        <div className="flex flex-1 flex-col items-center justify-center gap-6 py-4">
-          <ArmarioAbierto className="w-full max-w-[18rem] text-ink" />
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 py-2 sm:gap-6 sm:py-4">
+          {/* El alto manda sobre el ancho: en una pantalla corta, una
+              ilustración de ancho fijo empujaba los botones fuera y la portada
+              acababa desplazándose. */}
+          <div className="flex max-h-[38vh] w-full justify-center">
+            <ArmarioAbierto className="h-full max-h-full w-auto max-w-[18rem] text-ink" />
+          </div>
 
           <div className="text-center">
-            <h1 className="font-display text-[2.25rem] uppercase leading-none tracking-[0.02em]">
+            <h1 className="font-display uppercase leading-none tracking-[0.02em] [font-size:clamp(1.75rem,8vw,2.25rem)]">
               Tu armario
             </h1>
             <p className="mx-auto mt-3 max-w-[16rem] text-xs uppercase leading-relaxed tracking-[0.12em] text-ink-muted">
@@ -53,7 +58,7 @@ export default function LandingPage() {
         </div>
 
         {/* Ancladas abajo: crear cuenta y entrar son lo único que se hace aquí. */}
-        <div className="mt-auto flex flex-col gap-3 pb-4 pt-8">
+        <div className="mt-auto flex flex-col gap-2.5 pb-3 pt-5 sm:gap-3 sm:pb-4 sm:pt-8">
           <Link
             href="/register"
             className="inline-flex min-h-13 items-center justify-center rounded-full bg-accent px-6 text-sm font-semibold uppercase tracking-[0.12em] text-on-accent"

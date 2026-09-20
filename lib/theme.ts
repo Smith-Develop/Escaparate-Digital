@@ -8,6 +8,16 @@ export const THEMES: { id: ThemePreference; label: string }[] = [
   { id: "sistema", label: "Sistema" },
 ];
 
+/**
+ * El tema de partida es el claro.
+ *
+ * Es la identidad de la app —marfil, pasteles, ámbar— y con lo que se diseñó
+ * cada pantalla; quien prefiera el oscuro lo elige en el perfil, y quien quiera
+ * seguir al sistema también. Antes se seguía al sistema por omisión, y eso
+ * hacía que la primera impresión de la app dependiera del móvil de cada uno.
+ */
+export const TEMA_POR_DEFECTO: ThemePreference = "claro";
+
 /** Traduce la preferencia al tema que se pinta realmente. */
 export function resolveTheme(preference: ThemePreference): "claro" | "oscuro" {
   if (preference !== "sistema") return preference;
@@ -65,7 +75,7 @@ export function readPreference(): ThemePreference {
   } catch {
     // Modo privado o almacenamiento bloqueado: se usa la preferencia del sistema.
   }
-  return "sistema";
+  return TEMA_POR_DEFECTO;
 }
 
 /**
@@ -75,7 +85,7 @@ export function readPreference(): ThemePreference {
  * al hidratarse React: el clásico destello blanco al abrir la app de noche.
  */
 export const THEME_BOOTSTRAP = `(function(){try{
-var p=localStorage.getItem('${THEME_KEY}')||'sistema';
+var p=localStorage.getItem('${THEME_KEY}')||'${TEMA_POR_DEFECTO}';
 var r=p==='sistema'?(matchMedia('(prefers-color-scheme: light)').matches?'claro':'oscuro'):p;
 document.documentElement.dataset.theme=r;
-}catch(e){document.documentElement.dataset.theme='oscuro';}})();`;
+}catch(e){document.documentElement.dataset.theme='${TEMA_POR_DEFECTO}';}})();`;
