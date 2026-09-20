@@ -149,7 +149,7 @@ export function StudioView({ avatar, items, looks, initialLookId }: Props) {
           flotan encima en vez de ocupar una cabecera propia, que en una
           pantalla de móvil es espacio que le quitas a la ropa. */}
       <div
-        className="edge relative flex flex-1 items-stretch gap-3 overflow-hidden rounded-[1.75rem] p-3"
+        className="edge relative flex flex-1 items-stretch gap-3 overflow-hidden rounded-[1.75rem] p-3 mt-3"
         style={{ background: degradadoDelConjunto(equipped) }}
       >
         <CategoriasVertical active={category} onChange={setCategory} counts={counts} />
