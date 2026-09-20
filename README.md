@@ -484,6 +484,27 @@ tiene ese evento, así que allí se explica el camino a mano (Compartir → Aña
 pantalla de inicio), que es la única forma de instalar sin pasar por la App
 Store. No aparece si ya está instalada, ni dentro del APK, ni si se descartó.
 
+## El registro, sin confirmar el correo
+
+Registrarse en Escaparate crea la cuenta y entra, sin pasar por el correo. Eso
+no se puede conseguir con un ajuste de la app, porque la confirmación es un
+ajuste de **toda la instancia** de Supabase, y esta la comparten varias
+aplicaciones: apagarla dejaría a las demás aceptando correos de cualquiera.
+
+La solución es una función de borde,
+[escaparate-registro](supabase/functions/escaparate-registro/index.ts), que crea
+la cuenta ya confirmada con la clave de servicio. Esa clave vive en el servidor
+y nunca viaja al navegador: ese es el motivo entero de que sea una función y no
+unas líneas en la app. Cómo desplegarla, en
+[su LEEME](supabase/functions/escaparate-registro/LEEME.md).
+
+`lib/auth-cliente.ts` la llama primero y **sabe apañárselas sin ella**: si no
+está desplegada o no responde, vuelve al alta normal de Supabase Auth, que según
+cómo esté configurado el servidor entrará directamente o pedirá confirmar por
+correo. Lo que sí distingue es un rechazo de la función —datos mal escritos,
+correo repetido— de su ausencia: lo primero se le cuenta al usuario, lo segundo
+se resuelve por el otro camino sin que se entere.
+
 ## La barra de navegación y el alto de la pantalla
 
 El panel es una columna de **altura exacta de la ventana** (`h-dvh`) que no

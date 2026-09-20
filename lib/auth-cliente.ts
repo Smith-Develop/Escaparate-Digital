@@ -46,17 +46,51 @@ const fallo = (error: { message: string } | null) => {
 const destinoDeVuelta = () =>
   typeof window === "undefined" ? undefined : `${window.location.origin}/login/`;
 
-export async function registrar({
-  name,
-  email,
-  password,
-}: {
-  name: string;
-  email: string;
-  password: string;
-}) {
+/**
+ * Nombre de la función que da de alta sin confirmar el correo.
+ *
+ * Vive en el servidor porque necesita la clave de servicio, que no puede pisar
+ * el navegador. Si no está desplegada, el registro sigue funcionando por la vía
+ * normal: ver `supabase/functions/escaparate-registro/LEEME.md`.
+ */
+const FUNCION_DE_ALTA = "escaparate-registro";
+
+type Alta = { name: string; email: string; password: string };
+
+/**
+ * Intenta el alta inmediata.
+ *
+ * Distingue tres desenlaces, y la distinción importa: si la función rechaza los
+ * datos hay que decírselo al usuario, pero si la función no está puesta hay que
+ * seguir por el camino de siempre en lugar de dejarlo sin registrarse.
+ */
+async function altaInmediata({ name, email, password }: Alta): Promise<"creada" | "no-disponible"> {
+  const { error } = await supabase().functions.invoke(FUNCION_DE_ALTA, {
+    body: { name: name.trim(), email: email.trim().toLowerCase(), password },
+  });
+  if (!error) return "creada";
+
+  const respuesta = (error as { context?: Response }).context;
+  const estado = respuesta?.status;
+
+  // Datos mal escritos o correo repetido: eso sí es cosa del usuario.
+  if (estado === 400 || estado === 409) {
+    const cuerpo = await respuesta!.json().catch(() => ({}));
+    throw new ErrorDeDatos(cuerpo.error ?? "No se pudo crear la cuenta");
+  }
+
+  return "no-disponible";
+}
+
+export async function registrar({ name, email, password }: Alta) {
   if (name.trim().length < 2) throw new ErrorDeDatos("Escribe tu nombre");
   if (password.length < 8) throw new ErrorDeDatos("La contraseña necesita al menos 8 caracteres");
+
+  // Camino normal: la cuenta nace confirmada y se entra sin más.
+  if ((await altaInmediata({ name, email, password })) === "creada") {
+    await entrar({ email, password });
+    return { haySesion: true };
+  }
 
   const { data, error } = await supabase().auth.signUp({
     email: email.trim().toLowerCase(),
@@ -71,9 +105,27 @@ export async function registrar({
   });
   fallo(error);
 
-  // Si el servidor exige confirmar el correo, no devuelve sesión: hay que
-  // decírselo al usuario en vez de dejarlo mirando una pantalla que no avanza.
-  return { haySesion: Boolean(data.session) };
+  // Desde aquí, el alta de toda la vida, por si la función no está desplegada.
+  // Con la confirmación de correo desactivada en el servidor, ya devuelve
+  // sesión y se entra directamente.
+  if (data.session) return { haySesion: true };
+
+  // Si no la devuelve, se intenta entrar acto seguido. Hay instalaciones que
+  // crean la cuenta ya confirmada pero no abren sesión en el mismo paso, y en
+  // ese caso pedirle al usuario que mire el correo sería mandarlo a esperar un
+  // mensaje que no va a llegar.
+  const { error: alEntrar } = await supabase().auth.signInWithPassword({
+    email: email.trim().toLowerCase(),
+    password,
+  });
+  if (!alEntrar) return { haySesion: true };
+
+  // Solo queda un motivo razonable: el servidor sí exige confirmar. Se le dice
+  // al usuario, en vez de dejarlo mirando una pantalla que no avanza.
+  if (/email not confirmed/i.test(alEntrar.message)) return { haySesion: false };
+
+  fallo(alEntrar);
+  return { haySesion: false };
 }
 
 export async function entrar({ email, password }: { email: string; password: string }) {
