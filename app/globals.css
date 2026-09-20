@@ -6,67 +6,74 @@
    el script de arranque, que la traduce antes de la primera pintura; así el CSS
    solo tiene que conocer dos paletas y no hay parpadeo al cargar.
 
-   La identidad de la app es oscura y editorial; la paleta clara traslada esos
-   mismos papeles a un marfil cálido en lugar de al blanco puro, que con el
-   acento dorado resultaría frío.                                            */
+   La identidad es cálida: un fondo de salvia apagada, tarjetas blancas muy
+   redondeadas que flotan sobre él con sombra difusa en vez de borde, y un ámbar
+   que manda en todo lo que se puede tocar. El texto sobre el ámbar es oscuro,
+   no blanco: con un dorado claro, el blanco no llega al contraste necesario.  */
 
-:root,
+:root[data-theme="claro"],
+:root {
+  color-scheme: light;
+
+  /* Salvia apagada para la página y blanco puro para lo que flota encima. Esa
+     diferencia es la que da la sensación de tarjetas levantadas sin usar
+     bordes. */
+  --canvas: #eaece2;
+  --surface: #ffffff;
+  --surface-2: #f4f5ee;
+  --line: #e4e6db;
+  --ink: #1e1d1a;
+  --ink-muted: #7b7a72;
+  --ink-faint: #a5a49b;
+
+  --accent: #f2b25c;
+  --accent-soft: #fdf1de;
+  --on-accent: #2a1f10;
+  --danger: #d1553f;
+  --scrim: rgb(40 35 25 / 0.45);
+  --checker-a: #eceade;
+  --checker-b: #f7f6f0;
+
+  /* Fondo de las superficies donde se enseña una prenda recortada: crema, para
+     que una prenda blanca no se pierda y una negra no haga un agujero. */
+  --display: #f7efe2;
+  /* El telón cálido de las pantallas de detalle y del probador. */
+  --hero: linear-gradient(180deg, #f6c684 0%, #f2b25c 100%);
+  --figure-shadow: rgb(120 88 40 / 0.22);
+
+  /* Sin filo: en este lenguaje visual lo que separa es la sombra, no la línea. */
+  --edge: 0 1px 2px rgb(30 29 26 / 0.04), 0 8px 20px rgb(30 29 26 / 0.06);
+  --edge-raised: 0 2px 6px rgb(30 29 26 / 0.06), 0 16px 40px rgb(30 29 26 / 0.12);
+  --focus: hsl(28 85% 42%);
+}
+
 :root[data-theme="oscuro"] {
   color-scheme: dark;
 
-  /* Negro puro y texto #ededed, como el tema oscuro del sistema de referencia. */
-  --canvas: #000000;
-  --surface: #0a0a0a;
-  --surface-2: #171717;
-  --line: #2e2e2e;
-  --ink: #ededed;
-  --ink-muted: #a1a1a1;
-  --ink-faint: #7a7a7a;
-  /* En oscuro la acción principal se invierte: fondo claro, texto negro. */
-  --accent: #ededed;
-  --accent-soft: #1f1f1f;
-  --on-accent: #000000;
-  --danger: #ff5b4f;
+  /* El mismo ámbar sobre carbón cálido: de noche cambia el fondo, no la marca. */
+  --canvas: #14130f;
+  --surface: #1c1b17;
+  --surface-2: #26241e;
+  --line: #322f28;
+  --ink: #f3f0e9;
+  --ink-muted: #a8a49a;
+  --ink-faint: #7c7970;
+
+  --accent: #f2b25c;
+  --accent-soft: #2e2519;
+  --on-accent: #241a0c;
+  --danger: #ff6b56;
   --scrim: rgb(0 0 0 / 0.7);
-  --checker-a: #171717;
-  --checker-b: #0a0a0a;
-  /* Fondo de las superficies donde se enseña la foto de una prenda: necesita
-     un tono propio o una camiseta negra se pierde sobre el negro de la página. */
-  --display: #1c1c1c;
-  --figure-shadow: rgb(0 0 0 / 0.5);
+  --checker-a: #24221d;
+  --checker-b: #1a1915;
 
-  /* Borde como sombra: anillo nítido de 1 px más una capa ambiental. */
-  --edge: 0 0 0 1px rgb(255 255 255 / 0.14);
-  --edge-raised: 0 0 0 1px rgb(255 255 255 / 0.16), 0 2px 4px rgb(0 0 0 / 0.6),
-    0 8px 24px rgb(0 0 0 / 0.5);
-  --focus: hsl(212 100% 62%);
-}
+  --display: #272420;
+  --hero: linear-gradient(180deg, #8a6a38 0%, #6f552c 100%);
+  --figure-shadow: rgb(0 0 0 / 0.55);
 
-:root[data-theme="claro"] {
-  color-scheme: light;
-
-  /* Blanco puro y #171717: el lienzo de galería del sistema de referencia. */
-  --canvas: #ffffff;
-  --surface: #ffffff;
-  --surface-2: #fafafa;
-  --line: #eaeaea;
-  --ink: #171717;
-  --ink-muted: #666666;
-  --ink-faint: #8f8f8f;
-  --accent: #171717;
-  --accent-soft: #f2f2f2;
-  --on-accent: #ffffff;
-  --danger: #d93036;
-  --scrim: rgb(0 0 0 / 0.45);
-  --checker-a: #f0f0f0;
-  --checker-b: #fafafa;
-  --display: #f2f2f2;
-  --figure-shadow: rgb(0 0 0 / 0.18);
-
-  --edge: 0 0 0 1px rgb(0 0 0 / 0.08), 0 1px 2px rgb(0 0 0 / 0.04);
-  --edge-raised: 0 0 0 1px rgb(0 0 0 / 0.08), 0 2px 4px rgb(0 0 0 / 0.04),
-    0 8px 24px rgb(0 0 0 / 0.08);
-  --focus: hsl(212 100% 48%);
+  --edge: 0 0 0 1px rgb(255 255 255 / 0.07), 0 8px 20px rgb(0 0 0 / 0.45);
+  --edge-raised: 0 0 0 1px rgb(255 255 255 / 0.09), 0 16px 40px rgb(0 0 0 / 0.6);
+  --focus: hsl(38 95% 62%);
 }
 
 /* ── Sistema de diseño ─────────────────────────────────────────────────────
@@ -91,8 +98,15 @@
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 
-  --radius-xl: 1.25rem;
-  --radius-2xl: 1.75rem;
+  /* Las tarjetas de la referencia son muy redondeadas: 24 px arriba y 32 en
+     las hojas que suben desde abajo. */
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+}
+
+/* Telón cálido de las pantallas de detalle y del probador. */
+.bg-hero {
+  background: var(--hero);
 }
 
 html {

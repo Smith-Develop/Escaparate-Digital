@@ -82,7 +82,7 @@ export function ClosetFilters({
           value={filters.query}
           onChange={(e) => setFilter("query", e.target.value)}
           placeholder="Buscar en el armario…"
-          className="!py-2.5 !text-sm"
+          className="!rounded-full !py-3 !text-sm"
           type="search"
         />
         <button
@@ -91,15 +91,18 @@ export function ClosetFilters({
           aria-expanded={open}
           aria-label="Filtros"
           className={[
-            "relative grid size-11 shrink-0 place-items-center rounded-xl border transition-colors",
-            open || extraFilters > 0 ? "border-accent text-accent" : "border-line text-ink-muted",
+            // Pastilla oscura junto al buscador, como el botón de filtros del
+            // diseño: es la única acción de esa fila y conviene que se vea.
+            "relative flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm transition-colors",
+            open || extraFilters > 0 ? "bg-accent text-on-accent" : "bg-ink text-canvas",
           ].join(" ")}
         >
-          <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.6">
+          <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8">
             <path d="M4 7h16M7 12h10M10 17h4" strokeLinecap="round" />
           </svg>
+          Filtros
           {extraFilters > 0 && (
-            <span className="absolute -right-1 -top-1 grid size-4 place-items-center rounded-full bg-accent text-[10px] font-bold text-on-accent">
+            <span className="grid size-5 place-items-center rounded-full bg-canvas text-[10px] font-bold text-ink">
               {extraFilters}
             </span>
           )}

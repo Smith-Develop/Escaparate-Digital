@@ -60,7 +60,7 @@ export function CategoryRail({
   });
 
   return (
-    <div className="flex flex-col gap-2 bg-display pt-2">
+    <div className="flex flex-col gap-2">
       <div role="tablist" aria-label="Categorías" className="no-scrollbar flex gap-2 overflow-x-auto px-4">
         {CATEGORIES.map((category) => {
           const activa = category.id === active;
@@ -75,7 +75,7 @@ export function CategoryRail({
               onClick={() => onCategoryChange(category.id)}
               className={[
                 "flex min-h-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl px-3 transition-shadow",
-                activa ? "bg-accent text-on-accent" : "edge bg-surface text-ink-muted",
+                activa ? "bg-accent text-on-accent" : "bg-surface-2 text-ink-muted",
               ].join(" ")}
             >
               <span className="text-xl leading-none" aria-hidden>
@@ -96,7 +96,7 @@ export function CategoryRail({
             /* Marca del centro: indica cuál es la posición que viste al avatar. */
             <span
               aria-hidden
-              className="pointer-events-none absolute left-1/2 top-1/2 z-10 size-[4.5rem] -translate-x-1/2 -translate-y-1/2 rounded-2xl shadow-[0_0_0_2px_var(--accent)]"
+              className="pointer-events-none absolute left-1/2 top-1/2 z-10 size-[4.5rem] -translate-x-1/2 -translate-y-1/2 rounded-[1.4rem] shadow-[0_0_0_2px_var(--accent)]"
             />
           )}
           <div
@@ -225,8 +225,8 @@ function Casilla({
       aria-current={selected}
       aria-label={label ?? "Sin prenda"}
       className={[
-        "size-16 shrink-0 snap-center overflow-hidden rounded-2xl bg-display p-1 transition-opacity",
-        selected ? "" : "edge opacity-55",
+        "size-16 shrink-0 snap-center overflow-hidden rounded-[1.25rem] bg-display p-1 transition-opacity",
+        selected ? "shadow-[0_0_0_2px_var(--accent)]" : "opacity-55",
       ].join(" ")}
     >
       {children}

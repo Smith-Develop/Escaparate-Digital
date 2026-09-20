@@ -18,7 +18,7 @@ export function AvisoSinConexion() {
 
   if (!hayRed) {
     return (
-      <p className="bg-surface-2 px-5 py-2 text-center text-xs text-ink-muted">
+      <p className="mx-4 mb-1 rounded-full bg-surface px-4 py-2 text-center text-xs text-ink-muted edge">
         Sin conexión · estás viendo tu armario descargado
       </p>
     );
@@ -26,7 +26,7 @@ export function AvisoSinConexion() {
 
   if (descarga) {
     return (
-      <p className="bg-surface-2 px-5 py-2 text-center text-xs text-ink-muted">
+      <p className="mx-4 mb-1 rounded-full bg-surface px-4 py-2 text-center text-xs text-ink-muted edge">
         Descargando fotos · {descarga.hechas} de {descarga.total}
       </p>
     );
@@ -34,7 +34,7 @@ export function AvisoSinConexion() {
 
   if (desfasado) {
     return (
-      <p className="bg-surface-2 px-5 py-2 text-center text-xs text-ink-muted">
+      <p className="mx-4 mb-1 rounded-full bg-surface px-4 py-2 text-center text-xs text-ink-muted edge">
         No se ha podido actualizar · estás viendo lo último guardado
       </p>
     );

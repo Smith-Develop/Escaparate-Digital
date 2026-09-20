@@ -101,7 +101,7 @@ export function InstalarApp() {
   };
 
   return (
-    <div className="flex items-center gap-3 border-b border-line bg-surface px-4 py-2.5">
+    <div className="edge mx-4 mb-1 flex items-center gap-3 rounded-[1.25rem] bg-surface px-3 py-2.5">
       <span aria-hidden className="text-lg">
         📲
       </span>

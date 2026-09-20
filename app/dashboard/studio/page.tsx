@@ -2,7 +2,6 @@
 
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Header } from "@/components/layout/Header";
 import { Titulo } from "@/components/Titulo";
 import { StudioView } from "@/components/studio/StudioView";
 import { useEspejo } from "@/lib/local/espejo";
@@ -44,7 +43,8 @@ function Estudio() {
   return (
     <>
       <Titulo>Estudio</Titulo>
-      <Header title="Estudio" subtitle="Combina tus prendas" />
+      {/* Sin cabecera a propósito: aquí el alto es ropa, y la pestaña de abajo
+          ya dice dónde estás. Los controles viven sobre el telón. */}
       <StudioView avatar={avatar} items={items} looks={looks} initialLookId={lookId} />
     </>
   );

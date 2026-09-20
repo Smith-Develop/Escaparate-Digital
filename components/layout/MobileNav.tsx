@@ -21,8 +21,11 @@ export function MobileNav() {
     // dependía de que la página tuviera scroll, y en las que no lo tienen
     // —estudio, o perfil en una pantalla alta— se quedaba flotando a media
     // altura, allí donde terminara el contenido.
-    <nav className="z-30 shrink-0 border-t border-line bg-canvas/95 backdrop-blur pb-safe">
-      <ul className="mx-auto flex max-w-lg">
+    //
+    // No ocupa todo el ancho ni lleva borde: es una pastilla blanca que flota
+    // sobre el fondo de salvia, como el resto de las superficies del diseño.
+    <nav className="z-30 shrink-0 px-4 pb-safe pt-1">
+      <ul className="edge mx-auto flex max-w-lg rounded-[1.75rem] bg-surface px-1 py-1">
         {TABS.map(({ href, label, icon: Icon }) => {
           const active = href === "/dashboard" ? pathname === href : pathname.startsWith(href);
           return (
@@ -30,17 +33,22 @@ export function MobileNav() {
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className="relative flex flex-col items-center gap-1 px-1 pb-1.5 pt-2.5"
+                className="relative flex flex-col items-center gap-1 rounded-[1.5rem] px-1 pb-1.5 pt-2"
               >
+                {/* El punto sobre el icono es la marca de «estás aquí» del
+                    diseño; se mueve de una pestaña a otra en vez de aparecer
+                    y desaparecer. */}
                 {active && (
                   <motion.span
                     layoutId="nav-indicator"
-                    className="absolute inset-x-4 top-0 h-0.5 rounded-full bg-accent"
+                    className="absolute top-0.5 size-1.5 rounded-full bg-ink"
                     transition={{ type: "spring", stiffness: 420, damping: 34 }}
                   />
                 )}
-                <Icon className={active ? "text-accent" : "text-ink-faint"} />
-                <span className={`text-[10px] ${active ? "text-ink" : "text-ink-faint"}`}>
+                <Icon className={active ? "text-ink" : "text-ink-faint"} />
+                <span
+                  className={`text-[10px] ${active ? "font-medium text-ink" : "text-ink-faint"}`}
+                >
                   {label}
                 </span>
               </Link>

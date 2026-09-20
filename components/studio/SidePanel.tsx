@@ -41,8 +41,11 @@ export function SidePanel({
   const activa = pestanas.find((t) => t.id === pestana)!;
 
   return (
-    <div className="flex min-h-0 w-[4.75rem] shrink-0 flex-col gap-1">
-      <div role="tablist" aria-label="Panel lateral" className="edge grid grid-cols-2 rounded-full bg-surface p-0.5">
+    // Tarjeta blanca sobre el telón cálido, como la tira de miniaturas del
+    // diseño: sin ella, las prendas puestas flotaban sueltas sobre el ámbar y
+    // apenas se leían.
+    <div className="edge flex min-h-0 w-[4.75rem] shrink-0 flex-col gap-1 rounded-[1.4rem] bg-surface p-1.5">
+      <div role="tablist" aria-label="Panel lateral" className="grid grid-cols-2 rounded-full bg-surface-2 p-0.5">
         {pestanas.map((t) => (
           <button
             key={t.id}

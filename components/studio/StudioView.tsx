@@ -141,51 +141,18 @@ export function StudioView({ avatar, items, looks, initialLookId }: Props) {
   }
 
   return (
-    <div className="flex flex-1 flex-col">
-      <header className="flex items-center justify-between gap-2 bg-display px-4 pb-2 pt-1">
-        <button
-          type="button"
-          onClick={() => setOutfit(randomOutfit(items, equipped))}
-          className="edge flex items-center gap-1.5 rounded-full bg-surface px-3.5 py-2 text-xs text-ink"
-        >
-          <span aria-hidden>🎲</span> Aleatorio
-        </button>
-
-        <div className="flex items-center gap-2">
-          <AnimatePresence>
-            {equipped.length > 0 && (
-              <motion.button
-                type="button"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                onClick={clear}
-                className="rounded-full px-3 py-2 text-xs text-ink-muted"
-              >
-                Desvestir
-              </motion.button>
-            )}
-          </AnimatePresence>
-          <button
-            type="button"
-            onClick={() => setSaveOpen(true)}
-            disabled={equipped.length === 0}
-            className="rounded-full bg-accent px-4 py-2 text-xs font-semibold text-on-accent disabled:opacity-40"
-          >
-            Guardar look
-          </button>
-        </div>
-      </header>
-
-      {/* El fondo ocupa todo el ancho, sin tarjeta ni borde: la figura vive en
-          el espacio de la pantalla, no dentro de un recuadro. */}
-      <div className="flex flex-1 items-stretch gap-3 bg-display px-3 pb-2 pt-1">
+    <div className="flex flex-1 flex-col gap-3 px-3 pb-2">
+      {/* El telón cálido: la figura vive sobre él, a sangre y con las esquinas
+          redondeadas, igual que la foto de producto del diseño. Los controles
+          flotan encima en vez de ocupar una cabecera propia, que en una
+          pantalla de móvil es espacio que le quitas a la ropa. */}
+      <div className="bg-hero relative flex flex-1 items-stretch gap-3 overflow-hidden rounded-[1.75rem] p-3">
         <div className="relative min-w-0 flex-1 overflow-hidden">
           <ZoomPan>
             <OutfitCanvas items={equipped} body={photo} />
           </ZoomPan>
           {equipped.length === 0 && (
-            <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-[11px] text-ink-faint">
+            <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-[11px] text-on-accent/70">
               Elige prendas abajo o pulsa Aleatorio
             </p>
           )}
@@ -198,21 +165,69 @@ export function StudioView({ avatar, items, looks, initialLookId }: Props) {
           onCenterLook={centrarLook}
           defaultTab={initialLookId ? "looks" : "puestas"}
         />
+
+        {/* Arriba a la izquierda, sobre el telón. */}
+        <button
+          type="button"
+          onClick={() => setOutfit(randomOutfit(items, equipped))}
+          className="edge absolute left-5 top-5 flex min-h-9 items-center gap-1.5 rounded-full bg-surface px-3.5 text-xs font-medium text-ink"
+        >
+          <span aria-hidden>🎲</span> Aleatorio
+        </button>
+
+        <AnimatePresence>
+          {equipped.length > 0 && (
+            <motion.button
+              type="button"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              onClick={clear}
+              className="edge absolute bottom-5 left-5 min-h-9 rounded-full bg-surface px-3.5 text-xs text-ink-muted"
+            >
+              Desvestir
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
 
-      <CategoryRail
-        active={category}
-        onCategoryChange={setCategory}
-        items={byCategory.get(category) ?? []}
-        equippedIds={equippedAllIn(category)}
-        onCenter={centrar}
-        onToggle={alternar}
-        onShuffle={() => shuffle(category)}
-        counts={counts}
-      />
+      {/* La tarjeta blanca que sube desde abajo, con lo que se puede tocar. */}
+      <div className="edge flex flex-col gap-2 rounded-[1.75rem] bg-surface pb-2 pt-3">
+        <div className="flex items-center justify-between gap-3 px-4">
+          <div className="min-w-0">
+            <p className="truncate font-display text-lg leading-tight">
+              {equipped.length === 0
+                ? "Sin nada puesto"
+                : `${equipped.length} ${equipped.length === 1 ? "prenda puesta" : "prendas puestas"}`}
+            </p>
+            <p className="truncate text-xs text-ink-muted">
+              {editingLook ? `Editando «${editingLook.name}»` : "Desliza para probar"}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSaveOpen(true)}
+            disabled={equipped.length === 0}
+            className="min-h-10 shrink-0 rounded-full bg-accent px-5 text-sm font-semibold text-on-accent disabled:opacity-40"
+          >
+            {editingLook ? "Actualizar" : "Guardar look"}
+          </button>
+        </div>
+
+        <CategoryRail
+          active={category}
+          onCategoryChange={setCategory}
+          items={byCategory.get(category) ?? []}
+          equippedIds={equippedAllIn(category)}
+          onCenter={centrar}
+          onToggle={alternar}
+          onShuffle={() => shuffle(category)}
+          counts={counts}
+        />
+      </div>
 
       {avatar.photoUrl && (
-        <div className="flex items-center justify-end px-4 pb-2 pt-1">
+        <div className="flex items-center justify-end px-2">
           <label className="flex items-center gap-2 text-[11px] text-ink-muted">
             Mi foto
             <input

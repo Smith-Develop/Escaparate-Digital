@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { Header } from "@/components/layout/Header";
+import { BotonCabecera, Header } from "@/components/layout/Header";
 import { Titulo } from "@/components/Titulo";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Foto } from "@/components/ui/Foto";
@@ -48,7 +48,18 @@ export default function DashboardPage() {
   return (
     <>
       <Titulo>Inicio</Titulo>
-      <Header title={saludo ? `Hola, ${saludo}` : "Hola"} subtitle="Tu armario, siempre a mano." />
+      <Header
+        title={saludo ? `Hola, ${saludo}` : "Hola"}
+        subtitle="Tu armario, siempre a mano."
+        action={
+          <BotonCabecera href="/dashboard/profile" label="Tu perfil">
+            <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <circle cx="12" cy="8" r="3.5" />
+              <path d="M4.5 20a7.5 7.5 0 0 1 15 0" />
+            </svg>
+          </BotonCabecera>
+        }
+      />
 
       <div className="grid grid-cols-3 gap-3 px-5">
         <Stat value={items.length} label="Prendas" />

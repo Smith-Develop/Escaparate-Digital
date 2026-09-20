@@ -415,13 +415,20 @@ porque con ellas se dibuja el maniquí de referencia al colocar cada prenda.
 
 ## Sistema de diseño
 
-La interfaz sigue las pautas de [DESIGN.md](DESIGN.md). Lo que eso significa en
-este código:
+La identidad es **cálida y redondeada**: un fondo de salvia apagada, tarjetas
+blancas muy redondeadas que flotan encima con sombra difusa, y un ámbar que
+manda en todo lo que se puede tocar. Lo que eso significa en este código:
 
-- **Canto como sombra.** Las superficies no llevan `border` sino un anillo de
-  1 px en la capa de sombra (`.edge` y `.edge-raised` en
-  [globals.css](app/globals.css)), que da un borde más nítido y se puede animar
-  sin mover la maquetación.
+- **Lo que separa es la sombra, no la línea.** Las superficies no llevan borde:
+  `.edge` y `.edge-raised` ([globals.css](app/globals.css)) son sombras suaves
+  y amplias. En oscuro sí añaden un filo de 1 px, porque sobre carbón una
+  sombra no separa nada.
+- **Texto oscuro sobre el ámbar.** `--on-accent` es casi negro, no blanco: con
+  un dorado claro el blanco no llega al contraste necesario. Es el motivo de
+  que los botones principales se lean como en la referencia y no como un
+  degradado lavado.
+- **Un solo acento en los dos temas.** De noche cambia el fondo —carbón cálido—
+  pero el ámbar se queda: la marca no debería cambiar de color al anochecer.
 - **Foco visible obligatorio.** Una única regla con `:where(…):focus-visible`
   pinta un anillo azul en todos los controles. Antes no había ninguno: los
   campos usaban `outline-none` sin sustituto, que deja sin referencia a quien
@@ -435,11 +442,17 @@ este código:
 - **Movimiento.** Solo se animan `transform`, `opacity` y las sombras; nunca
   `transition: all` ni propiedades que recalculan la maquetación.
 
-- **Paleta y tipografía completas del sistema.** Blanco puro con texto
-  `#171717` en claro, negro puro con `#ededed` en oscuro, acción principal en
-  negro sobre blanco (y al revés en oscuro). Geist en toda la interfaz, con
-  interletraje negativo —nunca positivo, que la familia ya va estrecha— y las
-  ligaduras activadas.
+- **Cabeceras en dos formatos.** Con vuelta atrás, disposición de detalle:
+  botón redondo a la izquierda, título centrado y otro botón redondo a la
+  derecha, con el hueco reservado aunque no haya acción para que el título no
+  baile de una pantalla a otra. Sin ella, el título manda: grande y a la
+  izquierda. Las dos viven en [Header.tsx](components/layout/Header.tsx), junto
+  al botón redondo que comparten.
+- **La barra inferior es una pastilla que flota**, no un borde pegado al
+  fondo, y marca dónde estás con un punto sobre el icono que se desplaza de una
+  pestaña a otra.
+- **Geist en toda la interfaz**, con interletraje negativo —nunca positivo, que
+  la familia ya va estrecha— y las ligaduras activadas.
 
 ## Tema claro y oscuro
 
