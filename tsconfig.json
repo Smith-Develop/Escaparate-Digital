@@ -30,8 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules",
-    // Las funciones de borde corren en Deno, con otras librerías globales.
-    "supabase/functions"
-  ]
+  "exclude": ["node_modules"]
 }

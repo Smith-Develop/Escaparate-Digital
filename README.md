@@ -64,15 +64,22 @@ Después de cambiar cualquiera de las tres variables hay que **reconstruir**:
 reiniciar el contenedor no basta, porque sus valores ya están dentro del
 JavaScript compilado.
 
-Si el registro de usuarios va a usarse desde la web, hace falta además que el
-enlace del correo de confirmación sepa volver. GoTrue solo admite las
-direcciones de su lista blanca, así que en el recurso de **Supabase** —no en el
-de Escaparate— se añade la de la app **sin quitar las que ya hubiera**, porque la
-instancia la comparten varias:
+En el recurso de **Supabase** —no en el de Escaparate— hay además un ajuste que
+gobierna el registro: `ENABLE_EMAIL_AUTOCONFIRM` en `true` hace que las cuentas
+nazcan confirmadas y se entre sin pasar por el correo. Vale para toda la
+instancia; está explicado más abajo, en «El registro, sin confirmar el correo».
+
+Si algún día se vuelve a exigir confirmación, hará falta que el enlace del correo
+sepa volver. GoTrue solo admite las direcciones de su lista blanca, así que se
+añade la de la app **sin quitar las que ya hubiera**, porque la instancia la
+comparten varias aplicaciones:
 
 ```
 GOTRUE_URI_ALLOW_LIST = <lo que ya haya>,https://tu-dominio/**
 ```
+
+Con el autoconfirmado puesto, esa lista solo hace falta para restablecer
+contraseñas.
 
 Para comprobar que ha salido bien, sin abrir el navegador:
 
@@ -486,24 +493,28 @@ Store. No aparece si ya está instalada, ni dentro del APK, ni si se descartó.
 
 ## El registro, sin confirmar el correo
 
-Registrarse en Escaparate crea la cuenta y entra, sin pasar por el correo. Eso
-no se puede conseguir con un ajuste de la app, porque la confirmación es un
-ajuste de **toda la instancia** de Supabase, y esta la comparten varias
-aplicaciones: apagarla dejaría a las demás aceptando correos de cualquiera.
+Registrarse crea la cuenta y entra en el mismo paso, sin pasar por el correo.
+Eso **no se decide desde la app**: la confirmación es un ajuste de la instancia
+de Supabase (`ENABLE_EMAIL_AUTOCONFIRM`, que alimenta a
+`GOTRUE_MAILER_AUTOCONFIRM`), y está desactivada a propósito.
 
-La solución es una función de borde,
-[escaparate-registro](supabase/functions/escaparate-registro/index.ts), que crea
-la cuenta ya confirmada con la clave de servicio. Esa clave vive en el servidor
-y nunca viaja al navegador: ese es el motivo entero de que sea una función y no
-unas líneas en la app. Cómo desplegarla, en
-[su LEEME](supabase/functions/escaparate-registro/LEEME.md).
+Conviene saber lo que eso significa, porque la instancia la comparten varias
+aplicaciones: **el ajuste vale para todas**. Las cuentas que ya existían siguen
+como estaban, pero a partir de ahí cualquier app de esa instancia acepta
+registros con correos sin verificar. Se asumió con conocimiento de causa; si
+algún día deja de convenir, se vuelve a poner en `false` y hay que dar a cada
+app una forma de confirmar.
 
-`lib/auth-cliente.ts` la llama primero y **sabe apañárselas sin ella**: si no
-está desplegada o no responde, vuelve al alta normal de Supabase Auth, que según
-cómo esté configurado el servidor entrará directamente o pedirá confirmar por
-correo. Lo que sí distingue es un rechazo de la función —datos mal escritos,
-correo repetido— de su ausencia: lo primero se le cuenta al usuario, lo segundo
-se resuelve por el otro camino sin que se entere.
+Se valoró la alternativa de dejar la confirmación puesta y que solo Escaparate
+creara cuentas ya confirmadas, con una función de borde que usara la clave de
+servicio desde el servidor. Se descartó porque el servicio de funciones de esa
+instancia no sirve ninguna función —ni la que trae de fábrica— y arreglarlo
+exigía acceso al servidor, no solo al panel.
+
+Con todo, `lib/auth-cliente.ts` **no da por hecho** que el servidor esté así: si
+el alta no devuelve sesión, intenta entrar acto seguido, y solo si el servidor
+contesta «email not confirmed» enseña la pantalla de «revisa tu correo». Así, el
+día que alguien cambie ese ajuste, la app lo cuenta en vez de quedarse muda.
 
 ## La barra de navegación y el alto de la pantalla
 
