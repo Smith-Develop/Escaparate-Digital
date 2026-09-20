@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { AnilloCategorias, BarraAnimada, LineaPorAño } from "@/components/inicio/Graficos";
 import { Foto } from "@/components/ui/Foto";
 import { centimosATexto, centimosRedondeados } from "@/lib/dinero";
 import { calcularInversion, type Grupo } from "@/lib/inversion";
@@ -18,6 +19,18 @@ import type { Item } from "@/lib/types";
  * ninguna cifra guardada que pueda quedarse desfasada al añadir o borrar ropa,
  * y funciona sin conexión como el resto de la consulta.
  */
+/** Los gráficos, que en el inicio van antes que los desgloses en lista. */
+export function GraficosInversion({ items }: { items: Item[] }) {
+  const inv = calcularInversion(items);
+  if (inv.conPrecio === 0) return null;
+  return (
+    <div className="flex flex-col gap-4">
+      <AnilloCategorias grupos={inv.porCategoria} total={inv.total} />
+      <LineaPorAño grupos={inv.porAño} />
+    </div>
+  );
+}
+
 export function ResumenInversion({ items }: { items: Item[] }) {
   const inv = calcularInversion(items);
 
@@ -89,7 +102,8 @@ export function ResumenInversion({ items }: { items: Item[] }) {
       )}
 
       <Desglose titulo="Por categoría" grupos={inv.porCategoria} total={inv.total} iconos={iconos} />
-      <Desglose titulo="Por tipo de prenda" grupos={inv.porTipo.slice(0, 8)} total={inv.total} />
+      <Desglose
+        titulo="Por tipo de prenda" grupos={inv.porTipo.slice(0, 8)} total={inv.total} />
       {inv.porMarca.length > 0 && (
         <Desglose titulo="Por marca" grupos={inv.porMarca.slice(0, 8)} total={inv.total} />
       )}
@@ -144,7 +158,7 @@ function Desglose({
     <section className="edge rounded-[1.5rem] bg-surface p-5">
       <h2 className="text-xs uppercase tracking-[0.18em] text-ink-faint">{titulo}</h2>
       <ul className="mt-3 flex flex-col gap-3">
-        {(ordenar ? [...visibles].sort((a, b) => b.total - a.total) : visibles).map((grupo) => (
+        {(ordenar ? [...visibles].sort((a, b) => b.total - a.total) : visibles).map((grupo, i) => (
           <li key={grupo.id}>
             <div className="flex items-baseline justify-between gap-3">
               <p className="min-w-0 truncate text-sm">
@@ -166,12 +180,10 @@ function Desglose({
                 </span>
               </p>
             </div>
-            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-2">
-              <div
-                className="h-full rounded-full bg-accent"
-                style={{ width: `${Math.round((grupo.total / mayor) * 100)}%` }}
-              />
-            </div>
+            <BarraAnimada
+              porcentaje={Math.round((grupo.total / mayor) * 100)}
+              retraso={0.05 * i}
+            />
           </li>
         ))}
       </ul>

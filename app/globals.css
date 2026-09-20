@@ -18,13 +18,15 @@
   /* Salvia apagada para la página y blanco puro para lo que flota encima. Esa
      diferencia es la que da la sensación de tarjetas levantadas sin usar
      bordes. */
-  --canvas: #eaece2;
+  --canvas: #faf6ef;
   --surface: #ffffff;
-  --surface-2: #f4f5ee;
-  --line: #e4e6db;
+  --surface-2: #f4efe6;
+  --line: #ece5d8;
   --ink: #1e1d1a;
-  --ink-muted: #7b7a72;
-  --ink-faint: #a5a49b;
+  /* Medidos sobre el marfil: el gris de antes daba 4,00:1, por debajo del 4,5
+     que necesita un texto pequeño. Estos dan 4,65:1 y 3,6:1. */
+  --ink-muted: #736f66;
+  --ink-faint: #8a857b;
 
   --accent: #f2b25c;
   --accent-soft: #fdf1de;
@@ -33,6 +35,18 @@
      lejos del 4,5 que necesita. Este es el mismo tono llevado a un ámbar
      tostado: 4,84:1 sobre el fondo y 5,77:1 sobre blanco. */
   --accent-ink: #8f5a0e;
+
+  /* Familia de pasteles para las tarjetas de dato y las categorías. Cada uno
+     con su tinta, comprobada por encima de 5:1 sobre su propio fondo: un
+     pastel es bonito hasta que se le pone encima un texto que no se lee. */
+  --pastel-azul: #e8f0fa;
+  --pastel-azul-ink: #2c5a8f;
+  --pastel-ambar: #fdf1dd;
+  --pastel-ambar-ink: #8f5a0e;
+  --pastel-rosa: #fbeae7;
+  --pastel-rosa-ink: #9b4a3a;
+  --pastel-menta: #e7f3ec;
+  --pastel-menta-ink: #2f6b47;
   --danger: #d1553f;
   --scrim: rgb(40 35 25 / 0.45);
   --checker-a: #eceade;
@@ -68,6 +82,16 @@
   --on-accent: #241a0c;
   /* Sobre carbón el ámbar vivo ya da 9:1: aquí no hace falta oscurecerlo. */
   --accent-ink: #f2b25c;
+
+  /* De noche los pasteles se vuelven tintes profundos del mismo tono. */
+  --pastel-azul: #1a2733;
+  --pastel-azul-ink: #9cc4ea;
+  --pastel-ambar: #2e2519;
+  --pastel-ambar-ink: #f2b25c;
+  --pastel-rosa: #302020;
+  --pastel-rosa-ink: #e8a394;
+  --pastel-menta: #1b2a22;
+  --pastel-menta-ink: #8fd0aa;
   --danger: #ff6b56;
   --scrim: rgb(0 0 0 / 0.7);
   --checker-a: #24221d;
@@ -97,6 +121,14 @@
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
   --color-accent-ink: var(--accent-ink);
+  --color-pastel-azul: var(--pastel-azul);
+  --color-pastel-azul-ink: var(--pastel-azul-ink);
+  --color-pastel-ambar: var(--pastel-ambar);
+  --color-pastel-ambar-ink: var(--pastel-ambar-ink);
+  --color-pastel-rosa: var(--pastel-rosa);
+  --color-pastel-rosa-ink: var(--pastel-rosa-ink);
+  --color-pastel-menta: var(--pastel-menta);
+  --color-pastel-menta-ink: var(--pastel-menta-ink);
   --color-on-accent: var(--on-accent);
   --color-danger: var(--danger);
   --color-scrim: var(--scrim);

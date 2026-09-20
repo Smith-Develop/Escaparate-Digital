@@ -60,21 +60,34 @@ export function ClosetFilters({
         <Chip active={filters.category === "todas"} onClick={() => setFilter("category", "todas")}>
           Todo
         </Chip>
-        {CATEGORIES.map((category) => (
-          <Chip
-            key={category.id}
-            active={filters.category === category.id}
-            onClick={() => {
-              setFilter("category", category.id);
-              // El tipo elegido es de la categoría anterior: dejarlo puesto
-              // vaciaría la cuadrícula sin que se vea por qué.
-              setFilter("subcategory", "todas");
-            }}
-          >
-            <span aria-hidden>{category.icon}</span>
-            {category.label}
-          </Chip>
-        ))}
+        {CATEGORIES.map((category, i) => {
+          const activa = filters.category === category.id;
+          return (
+            <Chip
+              key={category.id}
+              active={activa}
+              onClick={() => {
+                setFilter("category", category.id);
+                // El tipo elegido es de la categoría anterior: dejarlo puesto
+                // vaciaría la cuadrícula sin que se vea por qué.
+                setFilter("subcategory", "todas");
+              }}
+            >
+              {/* El icono va en su círculo teñido, con un pastel distinto por
+                  categoría: se reconocen por color antes que por el texto. */}
+              <span
+                aria-hidden
+                className={[
+                  "grid size-6 place-items-center rounded-full text-[13px]",
+                  activa ? "bg-on-accent/10" : PASTELES[i % PASTELES.length],
+                ].join(" ")}
+              >
+                {category.icon}
+              </span>
+              {category.label}
+            </Chip>
+          );
+        })}
       </div>
 
       <div className="flex items-center gap-2 px-5 pt-2">
@@ -247,6 +260,15 @@ function Opcion({
     </Chip>
   );
 }
+
+/** Un pastel por categoría, en el orden en que salen. */
+const PASTELES = [
+  "bg-pastel-azul",
+  "bg-pastel-ambar",
+  "bg-pastel-menta",
+  "bg-pastel-rosa",
+  "bg-surface-2",
+];
 
 /** Valores distintos, sin vacíos y en orden alfabético. */
 function unicos(valores: string[]) {
