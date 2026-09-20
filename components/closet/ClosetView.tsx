@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { RESORTE } from "@/lib/animaciones";
 import { ClosetFilters } from "@/components/closet/ClosetFilters";
 import { ItemCard } from "@/components/closet/ItemCard";
 import { ItemDetailSheet } from "@/components/closet/ItemDetailSheet";
@@ -77,7 +78,7 @@ export function ClosetView({
       <motion.div
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 400, damping: 24 }}
+        transition={RESORTE}
         className="pointer-events-none fixed inset-x-0 bottom-0 z-30 mx-auto flex max-w-lg justify-end px-5 pb-20"
       >
         <Link

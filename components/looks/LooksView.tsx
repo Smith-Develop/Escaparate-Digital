@@ -1,5 +1,8 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
+import { ApareceItem } from "@/components/ui/Aparece";
+import { APARECE } from "@/lib/animaciones";
 import { Foto } from "@/components/ui/Foto";
 import Link from "next/link";
 import { useState } from "react";
@@ -44,7 +47,11 @@ export function LooksView({ looks }: { looks: Look[] }) {
         ))}
       </div>
 
-      {tab === "agenda" ? <Agenda looks={looks} /> : <Collection looks={looks} />}
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div key={tab} {...APARECE} exit={{ opacity: 0 }}>
+          {tab === "agenda" ? <Agenda looks={looks} /> : <Collection looks={looks} />}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
@@ -87,9 +94,10 @@ function Agenda({ looks }: { looks: Look[] }) {
       </p>
 
       <ul className="flex flex-col gap-2">
-        {days.map(({ date, look }) => (
-          <li
+        {days.map(({ date, look }, index) => (
+          <ApareceItem
             key={date.toISOString()}
+            index={index}
             className="edge flex items-center gap-3 rounded-2xl bg-surface px-3 py-2.5"
           >
             <div className="w-12 shrink-0 text-center">
@@ -125,7 +133,7 @@ function Agenda({ looks }: { looks: Look[] }) {
             ) : (
               <span className="flex-1 text-sm text-ink-faint">Sin planificar</span>
             )}
-          </li>
+          </ApareceItem>
         ))}
       </ul>
     </div>

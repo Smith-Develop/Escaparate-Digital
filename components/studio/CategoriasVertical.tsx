@@ -1,5 +1,7 @@
 "use client";
 
+import { motion } from "framer-motion";
+import { AL_PULSAR, APARECE, escalonado } from "@/lib/animaciones";
 import { CATEGORIES } from "@/lib/taxonomy";
 
 /**
@@ -24,14 +26,17 @@ export function CategoriasVertical({
       aria-label="Categorías"
       className="no-scrollbar flex w-14 shrink-0 flex-col gap-2 overflow-y-auto"
     >
-      {CATEGORIES.map((category) => {
+      {CATEGORIES.map((category, index) => {
         const activa = category.id === active;
         const count = counts[category.id] ?? 0;
         return (
-          <button
+          <motion.button
             key={category.id}
             type="button"
             role="tab"
+            {...APARECE}
+            transition={escalonado(index)}
+            whileTap={AL_PULSAR}
             aria-selected={activa}
             aria-label={`${category.label} (${count})`}
             onClick={() => onChange(category.id)}
@@ -52,7 +57,7 @@ export function CategoriasVertical({
                 {count}
               </span>
             )}
-          </button>
+          </motion.button>
         );
       })}
     </div>

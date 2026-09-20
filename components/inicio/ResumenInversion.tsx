@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { AnilloCategorias, BarraAnimada, LineaPorAño } from "@/components/inicio/Graficos";
+import { ApareceSeccion } from "@/components/ui/Aparece";
 import { Foto } from "@/components/ui/Foto";
 import { centimosATexto, centimosRedondeados } from "@/lib/dinero";
 import { calcularInversion, type Grupo } from "@/lib/inversion";
@@ -56,7 +57,7 @@ export function ResumenInversion({ items }: { items: Item[] }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <section className="edge rounded-[1.5rem] bg-surface p-5">
+      <ApareceSeccion index={0} className="edge rounded-[1.5rem] bg-surface p-5">
         <p className="text-[11px] uppercase tracking-[0.18em] text-ink-faint">Total invertido</p>
         <p className="tabular mt-1 font-display text-5xl leading-none">
           {centimosRedondeados(inv.total)}
@@ -74,10 +75,10 @@ export function ResumenInversion({ items }: { items: Item[] }) {
             pie={inv.masCara?.name}
           />
         </div>
-      </section>
+      </ApareceSeccion>
 
       {inv.masCara && (
-        <section className="edge flex items-center gap-4 rounded-[1.5rem] bg-surface p-4">
+        <ApareceSeccion index={1} className="edge flex items-center gap-4 rounded-[1.5rem] bg-surface p-4">
           <span className="size-16 shrink-0 overflow-hidden rounded-[1.1rem] bg-display">
             <Foto
               ruta={inv.masCara.imageUrl}
@@ -98,18 +99,29 @@ export function ResumenInversion({ items }: { items: Item[] }) {
               {inv.masCara.brand ? ` · ${inv.masCara.brand}` : ""}
             </p>
           </div>
-        </section>
+        </ApareceSeccion>
       )}
 
-      <Desglose titulo="Por categoría" grupos={inv.porCategoria} total={inv.total} iconos={iconos} />
       <Desglose
-        titulo="Por tipo de prenda" grupos={inv.porTipo.slice(0, 8)} total={inv.total} />
+        titulo="Por categoría"
+        indice={2}
+        grupos={inv.porCategoria}
+        total={inv.total}
+        iconos={iconos}
+      />
+      <Desglose
+        titulo="Por tipo de prenda"
+        indice={3}
+        grupos={inv.porTipo.slice(0, 8)}
+        total={inv.total}
+      />
       {inv.porMarca.length > 0 && (
-        <Desglose titulo="Por marca" grupos={inv.porMarca.slice(0, 8)} total={inv.total} />
+        <Desglose titulo="Por marca" indice={4} grupos={inv.porMarca.slice(0, 8)} total={inv.total} />
       )}
       {inv.porAño.length > 0 && (
         <Desglose
           titulo="Por año de compra"
+          indice={5}
           grupos={inv.porAño}
           total={inv.total}
           /* Los años se leen en orden cronológico, no por gasto. */
@@ -142,12 +154,15 @@ function Desglose({
   grupos,
   total,
   iconos,
+  indice = 0,
   ordenar = true,
 }: {
   titulo: string;
   grupos: Grupo[];
   total: number;
   iconos?: Record<string, string>;
+  /** Puesto en la columna de desgloses: marca el retardo de entrada. */
+  indice?: number;
   ordenar?: boolean;
 }) {
   const visibles = grupos.filter((g) => g.prendas > 0);
@@ -155,7 +170,7 @@ function Desglose({
   const mayor = Math.max(...visibles.map((g) => g.total), 1);
 
   return (
-    <section className="edge rounded-[1.5rem] bg-surface p-5">
+    <ApareceSeccion index={indice} className="edge rounded-[1.5rem] bg-surface p-5">
       <h2 className="text-xs uppercase tracking-[0.18em] text-ink-faint">{titulo}</h2>
       <ul className="mt-3 flex flex-col gap-3">
         {(ordenar ? [...visibles].sort((a, b) => b.total - a.total) : visibles).map((grupo, i) => (
@@ -187,6 +202,6 @@ function Desglose({
           </li>
         ))}
       </ul>
-    </section>
+    </ApareceSeccion>
   );
 }

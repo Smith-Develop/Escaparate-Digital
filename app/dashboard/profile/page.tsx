@@ -8,6 +8,7 @@ import { MeasuresSection } from "@/components/profile/MeasuresSection";
 import { CerrarSesion } from "@/components/profile/CerrarSesion";
 import { Espacio } from "@/components/profile/Espacio";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Aparece, ApareceSeccion } from "@/components/ui/Aparece";
 import { Stat } from "@/components/ui/Stat";
 import { centimosRedondeados } from "@/lib/dinero";
 import { useEspejo } from "@/lib/local/espejo";
@@ -35,6 +36,7 @@ export default function ProfilePage() {
       <Header title="Perfil" />
 
       <div className="flex flex-col gap-8 pb-24">
+        <Aparece index={0}>
         <AccountCard
           name={perfil?.name ?? "…"}
           email={email ?? ""}
@@ -45,8 +47,9 @@ export default function ProfilePage() {
             timeZone: "UTC",
           })}
         />
+        </Aparece>
 
-        <div className="grid grid-cols-3 gap-3 px-5">
+        <Aparece index={1} className="grid grid-cols-3 gap-3 px-5">
           <Stat value={items.length} label="Prendas" href="/dashboard/closet" />
           <Stat value={looks.length} label="Looks" href="/dashboard/looks" />
           <Stat
@@ -54,27 +57,35 @@ export default function ProfilePage() {
             label="Invertido"
             href="/dashboard"
           />
-        </div>
+        </Aparece>
 
-        {avatar && <BodyPhoto avatar={avatar} />}
-        {avatar && <MeasuresSection avatar={avatar} />}
+        {avatar && (
+          <Aparece index={2}>
+            <BodyPhoto avatar={avatar} />
+          </Aparece>
+        )}
+        {avatar && (
+          <Aparece index={3}>
+            <MeasuresSection avatar={avatar} />
+          </Aparece>
+        )}
 
-        <section className="px-5">
+        <ApareceSeccion index={4} className="px-5">
           <h2 className="mb-2 text-xs uppercase tracking-[0.14em] text-ink-faint">Apariencia</h2>
           <ThemeToggle />
-        </section>
+        </ApareceSeccion>
 
-        <section className="px-5">
+        <ApareceSeccion index={5} className="px-5">
           <h2 className="mb-2 text-xs uppercase tracking-[0.14em] text-ink-faint">
             En este dispositivo
           </h2>
           <Espacio />
-        </section>
+        </ApareceSeccion>
 
-        <section className="px-5">
+        <ApareceSeccion index={6} className="px-5">
           <h2 className="mb-2 text-xs uppercase tracking-[0.14em] text-ink-faint">Cuenta</h2>
           <CerrarSesion />
-        </section>
+        </ApareceSeccion>
       </div>
     </>
   );

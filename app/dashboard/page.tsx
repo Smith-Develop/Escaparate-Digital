@@ -10,6 +10,7 @@ import { compartirEnlace } from "@/lib/compartir";
 import { AnilloPuntuacion } from "@/components/inicio/Graficos";
 import { GraficosInversion, ResumenInversion } from "@/components/inicio/ResumenInversion";
 import { Foto } from "@/components/ui/Foto";
+import { Aparece, ApareceItem, ApareceSeccion } from "@/components/ui/Aparece";
 import { centimosRedondeados } from "@/lib/dinero";
 import { useEspejo } from "@/lib/local/espejo";
 import { useSesion } from "@/components/SesionProvider";
@@ -85,50 +86,54 @@ export default function DashboardPage() {
       {/* Lo primero que se ve: cuánta ropa hay y cuánto costó. Lo demás es
           detalle de eso. */}
       <div className="grid grid-cols-2 gap-3 px-5">
+        <Aparece index={0}>
         <Link
           href="/dashboard/closet"
-          className="rounded-[1.5rem] bg-pastel-azul px-4 py-5 text-center text-pastel-azul-ink"
+          className="block h-full rounded-[1.5rem] bg-pastel-azul px-4 py-5 text-center text-pastel-azul-ink"
         >
           <p className="tabular font-display text-[2.75rem] leading-none">{items.length}</p>
           <p className="mt-2 text-[11px] uppercase tracking-wider opacity-80">Prendas</p>
         </Link>
-        <div className="rounded-[1.5rem] bg-pastel-ambar px-4 py-5 text-center text-pastel-ambar-ink">
+        </Aparece>
+        <Aparece index={1} className="rounded-[1.5rem] bg-pastel-ambar px-4 py-5 text-center text-pastel-ambar-ink">
           <p className="tabular font-display leading-none [font-size:clamp(1.75rem,9vw,2.75rem)]">
             {centimosRedondeados(invertido)}
           </p>
           <p className="mt-2 text-[11px] uppercase tracking-wider opacity-80">Invertido</p>
-        </div>
+        </Aparece>
       </div>
 
       <div className="mt-3 grid grid-cols-3 gap-3 px-5">
+        <Aparece index={2}>
         <Link
           href="/dashboard/looks"
-          className="rounded-[1.5rem] bg-pastel-menta px-3 py-4 text-center text-pastel-menta-ink"
+          className="block h-full rounded-[1.5rem] bg-pastel-menta px-3 py-4 text-center text-pastel-menta-ink"
         >
           <p className="tabular font-display text-2xl leading-none">{looks.length}</p>
           <p className="mt-1.5 text-[10px] uppercase tracking-wider opacity-80">Looks</p>
         </Link>
-        <div className="edge rounded-[1.5rem] bg-surface px-3 py-4 text-center">
+        </Aparece>
+        <Aparece index={3} className="edge rounded-[1.5rem] bg-surface px-3 py-4 text-center">
           <p className="tabular font-display text-2xl leading-none">{conPrecio}</p>
           <p className="mt-1.5 text-[10px] uppercase tracking-wider text-ink-faint">Con precio</p>
-        </div>
-        <div className="rounded-[1.5rem] bg-pastel-rosa px-3 py-4 text-center text-pastel-rosa-ink">
+        </Aparece>
+        <Aparece index={4} className="rounded-[1.5rem] bg-pastel-rosa px-3 py-4 text-center text-pastel-rosa-ink">
           <p className="tabular font-display text-2xl leading-none">{items.length - conPrecio}</p>
           <p className="mt-1.5 text-[10px] uppercase tracking-wider opacity-80">Sin precio</p>
-        </div>
+        </Aparece>
       </div>
 
-      <div className="mt-6 flex flex-col gap-4 px-5">
+      <Aparece index={5} className="mt-6 flex flex-col gap-4 px-5">
         <AnilloPuntuacion
           porcentaje={usoDelArmario}
           titulo="Uso del armario"
           pie={`${usadas} de ${items.length} prendas aparecen en algún look guardado.`}
         />
         <GraficosInversion items={items} />
-      </div>
+      </Aparece>
 
       {proximo && (
-        <section className="mt-8 px-5">
+        <ApareceSeccion index={6} className="mt-8 px-5">
           <SectionTitle>Próximo look</SectionTitle>
           <Link
             href="/dashboard/looks"
@@ -162,10 +167,10 @@ export default function DashboardPage() {
               </p>
             </div>
           </Link>
-        </section>
+        </ApareceSeccion>
       )}
 
-      <section className="mt-8 px-5">
+      <ApareceSeccion index={7} className="mt-8 px-5">
         <div className="flex items-baseline justify-between">
           <SectionTitle>Añadido recientemente</SectionTitle>
           {items.length > 0 && (
@@ -186,8 +191,8 @@ export default function DashboardPage() {
           </div>
         ) : (
           <ul className="mt-3 grid grid-cols-3 gap-3">
-            {recientes.map((item) => (
-              <li key={item.id}>
+            {recientes.map((item, index) => (
+              <ApareceItem key={item.id} index={index}>
                 <Link
                   href="/dashboard/closet"
                   className="edge block aspect-square overflow-hidden rounded-xl bg-display p-2"
@@ -201,20 +206,20 @@ export default function DashboardPage() {
                     className="size-full object-contain"
                   />
                 </Link>
-              </li>
+              </ApareceItem>
             ))}
           </ul>
         )}
-      </section>
+      </ApareceSeccion>
 
       {/* Lo que vale el armario, aquí y no en una pantalla aparte: es un dato
           que solo sirve si se ve de pasada. */}
-      <section className="mt-8 flex-1 px-5 pb-24">
+      <ApareceSeccion index={8} className="mt-8 flex-1 px-5 pb-24">
         <SectionTitle>El detalle</SectionTitle>
         <div className="mt-3">
           <ResumenInversion items={items} />
         </div>
-      </section>
+      </ApareceSeccion>
     </>
   );
 }

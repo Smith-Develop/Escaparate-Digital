@@ -6,6 +6,7 @@ import { actualizarLook, borrarLook } from "@/lib/datos/looks";
 import { useEspejo } from "@/lib/local/espejo";
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { APARECE, escalonado } from "@/lib/animaciones";
 import { OCCASIONS, labelFor } from "@/lib/taxonomy";
 import type { Look } from "@/lib/types";
 
@@ -53,9 +54,8 @@ export function LookCard({ look, index }: { look: Look; index: number }) {
 
   return (
     <motion.article
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(index, 6) * 0.04 }}
+      {...APARECE}
+      transition={escalonado(index)}
       className={`edge rounded-2xl bg-surface p-4 ${busy ? "opacity-60" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">

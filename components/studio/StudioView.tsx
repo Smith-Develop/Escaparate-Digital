@@ -10,13 +10,15 @@ import { OutfitCanvas } from "@/components/studio/OutfitCanvas";
 import { ZoomPan } from "@/components/studio/ZoomPan";
 import { SaveLookSheet } from "@/components/studio/SaveLookSheet";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { LAYER_BY_CATEGORY } from "@/lib/taxonomy";
+import { CATEGORIES, LAYER_BY_CATEGORY } from "@/lib/taxonomy";
 import { bodyReference } from "@/lib/placement";
 import { randomOutfit, useOutfit } from "@/lib/store";
 import { degradadoDelConjunto } from "@/lib/paleta";
 import { componerConjunto } from "@/lib/lienzoConjunto";
 import { compartirImagen } from "@/lib/compartir";
-import { BotonCompartir, IconoCompartir } from "@/components/ui/BotonCompartir";
+import { BotonCompartir, IconoCamara } from "@/components/ui/BotonCompartir";
+import { Aparece } from "@/components/ui/Aparece";
+import { APARECE, BROTA } from "@/lib/animaciones";
 import { useSesion } from "@/components/SesionProvider";
 import {
   escribirBooleana,
@@ -147,27 +149,100 @@ export function StudioView({ avatar, items, looks, initialLookId }: Props) {
     );
   }
 
+  const categoriaActiva = CATEGORIES.find((c) => c.id === category);
+  const nombreDelConjunto = editingLook?.name ?? "Conjunto nuevo";
+
   return (
-    <div className="flex flex-1 flex-col gap-3 px-3 pb-2">
+    <div className="flex flex-1 flex-col gap-2.5 px-3 pb-2 pt-3">
       {/* El telón cálido: la figura vive sobre él, a sangre y con las esquinas
           redondeadas, igual que la foto de producto del diseño. Los controles
           flotan encima en vez de ocupar una cabecera propia, que en una
-          pantalla de móvil es espacio que le quitas a la ropa. */}
-      <div
-        className="edge relative flex flex-1 items-stretch gap-3 overflow-hidden rounded-[1.75rem] p-3 mt-3"
+          pantalla de móvil es espacio que le quitas a la ropa.
+
+          Tres columnas con el mismo aire entre ellas: categorías, figura y
+          panel. Todo lo que flota va anclado a la columna del centro, así que
+          se coloca solo por ancho de pantalla en vez de con distancias medidas
+          a ojo desde el borde del telón. */}
+      <motion.div
+        {...APARECE}
+        className="edge relative flex flex-1 items-stretch gap-2.5 overflow-hidden rounded-[1.75rem] p-2.5"
         style={{ background: degradadoDelConjunto(equipped) }}
       >
         <CategoriasVertical active={category} onChange={setCategory} counts={counts} />
 
-        <div className="relative min-w-0 flex-1 overflow-hidden">
+        <div className="relative min-w-0 flex-1">
           <ZoomPan>
             <OutfitCanvas items={equipped} body={photo} />
           </ZoomPan>
-          {equipped.length === 0 && (
-            <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-[11px] text-ink-muted">
-              Elige prendas abajo o pulsa Aleatorio
-            </p>
-          )}
+
+          {/* Fila de arriba: al azar a un lado, los interruptores al otro. */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => setOutfit(randomOutfit(items, equipped))}
+              className="edge pointer-events-auto flex min-h-9 items-center gap-1.5 rounded-full bg-surface px-3 text-xs font-medium text-ink"
+            >
+              <span aria-hidden>🎲</span> Aleatorio
+            </button>
+
+            <div className="flex items-center gap-1.5">
+              {avatar.photoUrl && (
+                <BotonRedondo
+                  label="Vestir sobre mi foto"
+                  activo={showPhoto}
+                  onClick={() => escribirBooleana(MI_FOTO, !showPhoto)}
+                >
+                  <IconoPersona />
+                </BotonRedondo>
+              )}
+
+              <AnimatePresence>
+                {equipped.length > 0 && (
+                  <motion.div {...BROTA} className="pointer-events-auto">
+                    <BotonRedondo label="Desvestir" onClick={clear}>
+                      <IconoDesvestir />
+                    </BotonRedondo>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+
+          {/* Abajo a la izquierda, donde antes estaba «Desvestir»: cómo se
+              llama lo que hay puesto. Es el dato que se mira al montar un
+              conjunto —si se está retocando uno guardado o empezando otro— y
+              hasta ahora vivía en letra pequeña dentro de la tarjeta. */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10">
+            <AnimatePresence mode="wait" initial={false}>
+              {equipped.length === 0 ? (
+                <motion.p
+                  key="pista"
+                  {...APARECE}
+                  exit={{ opacity: 0 }}
+                  className="text-center text-[11px] text-ink-muted"
+                >
+                  Elige prendas abajo o pulsa Aleatorio
+                </motion.p>
+              ) : (
+                <motion.div
+                  key="nombre"
+                  {...BROTA}
+                  className="edge inline-flex max-w-full flex-col rounded-2xl bg-surface px-3 py-1.5"
+                >
+                  <span className="truncate font-display text-sm leading-tight">
+                    {nombreDelConjunto}
+                  </span>
+                  <span className="tabular text-[10px] text-ink-faint">
+                    {equipped.length} {equipped.length === 1 ? "prenda" : "prendas"}
+                    {/* «Editando» y no «guardado»: cambiar una prenda no
+                        suelta el look, así que lo que hay puesto puede no ser
+                        ya lo que está guardado. */}
+                    {editingLook ? " · editando" : " · sin guardar"}
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
         <SidePanel
@@ -177,45 +252,28 @@ export function StudioView({ avatar, items, looks, initialLookId }: Props) {
           onCenterLook={centrarLook}
           defaultTab={initialLookId ? "looks" : "puestas"}
         />
+      </motion.div>
 
-        {/* Arriba a la izquierda, sobre el telón. */}
-        <button
-          type="button"
-          onClick={() => setOutfit(randomOutfit(items, equipped))}
-          className="edge absolute right-24 top-5 flex min-h-9 items-center gap-1.5 rounded-full bg-surface px-3.5 text-xs font-medium text-ink"
-        >
-          <span aria-hidden>🎲</span> Aleatorio
-        </button>
-
-        <AnimatePresence>
-          {equipped.length > 0 && (
-            <motion.button
-              type="button"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              onClick={clear}
-              className="edge absolute bottom-5 left-20 min-h-9 rounded-full bg-surface px-3.5 text-xs text-ink-muted"
-            >
-              Desvestir
-            </motion.button>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* La tarjeta blanca que sube desde abajo, con lo que se puede tocar. */}
-      <div className="edge flex flex-col gap-2 rounded-[1.75rem] bg-surface pb-2 pt-3">
+      {/* La tarjeta blanca que sube desde abajo, con lo que se puede tocar. Su
+          cabecera dice qué enseña el carrusel; el conjunto se lee en el telón. */}
+      <Aparece
+        index={1}
+        className="edge flex flex-col gap-2 rounded-[1.75rem] bg-surface pb-2 pt-3"
+      >
         <div className="flex items-center justify-between gap-3 px-4">
+          {/* Sin el nombre del conjunto —que ahora vive en el telón— esta
+              línea solo tiene que decir qué enseña el carrusel de abajo. En
+              cuerpo mediano, para que en una pantalla de 320 px el título
+              quepa entero al lado de los botones. */}
           <div className="min-w-0">
-            <p className="truncate font-display text-lg leading-tight">
-              {equipped.length === 0
-                ? "Sin nada puesto"
-                : `${equipped.length} ${equipped.length === 1 ? "prenda puesta" : "prendas puestas"}`}
+            <p className="truncate font-display text-base leading-tight">
+              {categoriaActiva?.label ?? "Prendas"}
             </p>
-            <p className="truncate text-xs text-ink-muted">
-              {editingLook ? `Editando «${editingLook.name}»` : "Desliza para probar"}
+            <p className="truncate text-[11px] text-ink-muted">
+              {category === "accesorio" ? "Toca para poner y quitar" : "Desliza para probar"}
             </p>
           </div>
+
           <div className="flex shrink-0 items-center gap-2">
             {/* La imagen se compone con las fotos del espejo, así que esto
                 también funciona sin conexión. */}
@@ -233,16 +291,16 @@ export function StudioView({ avatar, items, looks, initialLookId }: Props) {
                 );
               }}
             >
-              <IconoCompartir />
+              <IconoCamara />
             </BotonCompartir>
 
             <button
               type="button"
               onClick={() => setSaveOpen(true)}
               disabled={equipped.length === 0}
-              className="min-h-10 rounded-full bg-accent px-5 text-sm font-semibold text-on-accent disabled:opacity-40"
+              className="min-h-10 rounded-full bg-accent px-4 text-sm font-semibold text-on-accent disabled:opacity-40"
             >
-              {editingLook ? "Actualizar" : "Guardar look"}
+              {editingLook ? "Actualizar" : "Guardar"}
             </button>
           </div>
         </div>
@@ -255,27 +313,63 @@ export function StudioView({ avatar, items, looks, initialLookId }: Props) {
           onToggle={alternar}
           onShuffle={() => shuffle(category)}
         />
-      </div>
-
-      {avatar.photoUrl && (
-        <div className="flex items-center justify-end px-2">
-          <label className="flex items-center gap-2 text-[11px] text-ink-muted">
-            Mi foto
-            <input
-              type="checkbox"
-              checked={showPhoto}
-              onChange={(e) => escribirBooleana(MI_FOTO, e.target.checked)}
-              className="edge relative h-5 w-9 cursor-pointer appearance-none rounded-full bg-surface-2
-                         transition-colors checked:bg-accent
-                         before:absolute before:left-0.5 before:top-0.5 before:size-4 before:rounded-full
-                         before:bg-ink before:transition-transform checked:before:translate-x-4
-                         checked:before:bg-on-accent"
-            />
-          </label>
-        </div>
-      )}
+      </Aparece>
 
       <SaveLookSheet open={saveOpen} onClose={() => setSaveOpen(false)} />
     </div>
+  );
+}
+
+/**
+ * Botón redondo de los que flotan sobre el telón.
+ *
+ * Todos miden y pesan igual, encendidos o no: son la misma familia que los
+ * botones de cabecera del resto de la app, y en el estudio hacen de esquina
+ * ordenada en vez de tres controles de formas distintas.
+ */
+function BotonRedondo({
+  label,
+  onClick,
+  activo,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  /** Para los que se quedan encendidos, como el de la foto propia. */
+  activo?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      aria-pressed={activo}
+      className={[
+        "edge pointer-events-auto grid size-9 place-items-center rounded-full transition-colors",
+        activo ? "bg-accent text-on-accent" : "bg-surface text-ink-muted",
+      ].join(" ")}
+    >
+      {children}
+    </button>
+  );
+}
+
+function IconoPersona() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-[1.1rem]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="8" r="3.3" />
+      <path d="M5 20a7 7 0 0 1 14 0" />
+    </svg>
+  );
+}
+
+function IconoDesvestir() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-[1.1rem]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M4.5 10.5A8 8 0 1 1 5 16" />
+      <path d="M4 5.5v5h5" />
+    </svg>
   );
 }

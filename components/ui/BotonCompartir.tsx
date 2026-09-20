@@ -70,6 +70,31 @@ export function BotonCompartir({
   );
 }
 
+/**
+ * Icono de cámara, para compartir la foto de un conjunto.
+ *
+ * Lo que sale de ahí es una imagen, no un enlace: con la flecha de compartir
+ * genérica la gente esperaba que se enviara el look como algo que el otro
+ * pudiera abrir en la app, y llegaba una foto.
+ */
+export function IconoCamara({ className = "size-5" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2.2a1.5 1.5 0 0 0 1.25-.67l.6-.9A1.5 1.5 0 0 1 9.8 4.8h4.4a1.5 1.5 0 0 1 1.25.67l.6.9A1.5 1.5 0 0 0 17.3 7h2.2A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z" />
+      <circle cx="12" cy="13" r="3.4" />
+    </svg>
+  );
+}
+
 /** El icono de compartir, el mismo en toda la app. */
 export function IconoCompartir({ className = "size-5" }: { className?: string }) {
   return (

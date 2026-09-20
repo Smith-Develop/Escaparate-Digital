@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Adornos } from "@/components/ilustraciones/Adornos";
+import { Aparece } from "@/components/ui/Aparece";
 import { ArmarioAbierto } from "@/components/ilustraciones/ArmarioAbierto";
 import { useSesion } from "@/components/SesionProvider";
 
@@ -41,11 +42,11 @@ export default function LandingPage() {
           {/* El alto manda sobre el ancho: en una pantalla corta, una
               ilustración de ancho fijo empujaba los botones fuera y la portada
               acababa desplazándose. */}
-          <div className="flex max-h-[38vh] w-full justify-center">
+          <Aparece index={0} className="flex max-h-[38vh] w-full justify-center">
             <ArmarioAbierto className="h-full max-h-full w-auto max-w-[18rem] text-ink" />
-          </div>
+          </Aparece>
 
-          <div className="text-center">
+          <Aparece index={1} className="text-center">
             <h1 className="font-display uppercase leading-none tracking-[0.02em] [font-size:clamp(1.75rem,8vw,2.25rem)]">
               Tu armario
             </h1>
@@ -54,11 +55,11 @@ export default function LandingPage() {
               <br />
               y combínala sin abrir un cajón
             </p>
-          </div>
+          </Aparece>
         </div>
 
         {/* Ancladas abajo: crear cuenta y entrar son lo único que se hace aquí. */}
-        <div className="mt-auto flex flex-col gap-2.5 pb-3 pt-5 sm:gap-3 sm:pb-4 sm:pt-8">
+        <Aparece index={2} className="mt-auto flex flex-col gap-2.5 pb-3 pt-5 sm:gap-3 sm:pb-4 sm:pt-8">
           <Link
             href="/register"
             className="inline-flex min-h-13 items-center justify-center rounded-full bg-accent px-6 text-sm font-semibold uppercase tracking-[0.12em] text-on-accent"
@@ -71,7 +72,7 @@ export default function LandingPage() {
           >
             Iniciar sesión
           </Link>
-        </div>
+        </Aparece>
       </div>
     </main>
   );

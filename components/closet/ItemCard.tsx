@@ -2,6 +2,7 @@
 
 import { Foto } from "@/components/ui/Foto";
 import { motion } from "framer-motion";
+import { AL_PULSAR, APARECE, escalonado } from "@/lib/animaciones";
 import { colorHex } from "@/lib/taxonomy";
 import type { Item } from "@/lib/types";
 
@@ -17,11 +18,9 @@ export function ItemCard({ item, onClick, selected, index = 0 }: Props) {
     <motion.button
       type="button"
       onClick={onClick}
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      // Escalonado corto: da sensación de fluidez sin retrasar la lectura.
-      transition={{ delay: Math.min(index, 8) * 0.03 }}
-      whileTap={{ scale: 0.96 }}
+      {...APARECE}
+      transition={escalonado(index)}
+      whileTap={AL_PULSAR}
       className={[
         "group relative flex w-full flex-col overflow-hidden rounded-2xl bg-surface text-left transition-shadow",
         selected ? "shadow-[0_0_0_2px_var(--accent)]" : "edge",

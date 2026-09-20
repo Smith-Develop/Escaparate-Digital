@@ -328,9 +328,25 @@ clave está en que **cada prenda guarda dónde se coloca**.
 El estudio usa el fondo a sangre en toda la pantalla, con la figura proyectando
 sombra sobre él y gestos de acercamiento: pellizcar amplía, arrastrar recorre y
 un toque doble vuelve al encuadre completo (la transformación es visual, no toca
-las coordenadas guardadas). Coloca el avatar grande a la izquierda, a su derecha
-una columna estrecha con dos pestañas y abajo un raíl a lo ancho con las cinco
-categorías en iconos grandes.
+las coordenadas guardadas).
+
+El telón se reparte en **tres columnas con el mismo aire**: las categorías en
+vertical a la izquierda, la figura en el centro y la columna de dos pestañas a
+la derecha. Todo lo que flota va anclado **a la columna del centro**, no al
+borde del telón, así que se coloca solo en cualquier ancho en vez de con
+distancias medidas a ojo:
+
+- Arriba, una fila con *Aleatorio* a un lado y los dos botones redondos al otro
+  —vestir sobre mi foto, que se queda encendido, y desvestir—. Antes el
+  interruptor de la foto era una casilla suelta bajo la tarjeta, que ocupaba
+  alto y no se relacionaba con nada.
+- Abajo a la izquierda, **el nombre del conjunto**: el del look que se está
+  retocando o «Conjunto nuevo», con cuántas prendas lleva y si está guardado.
+  Es lo que se mira al montar un conjunto y vivía en letra pequeña dentro de la
+  tarjeta blanca.
+
+La tarjeta blanca de abajo queda entonces para lo que se toca: qué categoría
+enseña el raíl, el botón de la foto del conjunto y el de guardar.
 
 Los dos carruseles funcionan como el de una consola: se deslizan y **lo que queda
 en el centro es lo que se pone**, sin apuntar ni tocar, así que se van pasando
@@ -454,8 +470,20 @@ manda en todo lo que se puede tocar. Lo que eso significa en este código:
   pequeños amplían su zona con un pseudoelemento en lugar de crecer.
 - **Cifras tabulares** en todo lo que se compara en columna, elipsis reales
   (`…`) en los marcadores de posición y ejemplos concretos en vez de «Opcional».
-- **Movimiento.** Solo se animan `transform`, `opacity` y las sombras; nunca
-  `transition: all` ni propiedades que recalculan la maquetación.
+- **Movimiento, uno para toda la app.** Solo se animan `transform`, `opacity` y
+  las sombras; nunca `transition: all` ni propiedades que recalculan la
+  maquetación. El gesto nació en el armario —las prendas aparecen subiendo ocho
+  píxeles, escalonadas y con tope al octavo elemento— y vive en
+  [lib/animaciones.ts](lib/animaciones.ts), de donde lo toman el inicio, el
+  lookbook, el perfil y el estudio. Para envolver una sección basta con
+  [Aparece](components/ui/Aparece.tsx). Tenerlo en un sitio evita lo de antes:
+  dos listas parecidas entrando a ritmos distintos porque cada pantalla se
+  inventaba su duración.
+
+  Un aviso por si se envuelve un enlace: dentro de una rejilla, un `<a>` es
+  elemento de rejilla y se comporta como bloque, pero metido en el envoltorio de
+  la animación vuelve a ser en línea y el fondo de la tarjeta se parte. Los
+  enlaces que hacen de tarjeta llevan `block h-full`.
 
 - **Cabeceras en dos formatos.** Con vuelta atrás, disposición de detalle:
   botón redondo a la izquierda, título centrado y otro botón redondo a la
@@ -566,7 +594,9 @@ silencio y que el usuario no sepa si ha funcionado es peor que no ofrecerlo.
 La dirección que se comparte viene de `NEXT_PUBLIC_SITIO_URL`, porque dentro del
 APK `location.origin` es `https://localhost` y no le sirve a nadie.
 
-**La foto del conjunto** ([lib/lienzoConjunto.ts](lib/lienzoConjunto.ts)) se
+**La foto del conjunto** ([lib/lienzoConjunto.ts](lib/lienzoConjunto.ts)) —el
+botón con **icono de cámara** del estudio, porque lo que sale de ahí es una
+imagen y no un enlace— se
 compone en un lienzo de 1080×1920 repitiendo la misma colocación que se ve en
 pantalla, con el fondo teñido por la ropa puesta y la firma abajo. Las fotos
 salen del espejo local, así que **también se puede compartir sin conexión**: si
