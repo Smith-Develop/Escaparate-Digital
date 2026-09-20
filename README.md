@@ -427,6 +427,11 @@ manda en todo lo que se puede tocar. Lo que eso significa en este código:
   un dorado claro el blanco no llega al contraste necesario. Es el motivo de
   que los botones principales se lean como en la referencia y no como un
   degradado lavado.
+- **El ámbar de los rellenos no vale como texto.** Sobre el fondo de salvia da
+  1,56:1, muy lejos del 4,5 que pide un texto pequeño, así que los enlaces y el
+  maniquí usan `--accent-ink`, el mismo tono llevado a ámbar tostado: 4,84:1
+  sobre el fondo y 5,77:1 sobre blanco. En oscuro no hace falta, y `--accent-ink`
+  vuelve a ser el ámbar vivo, que ahí ya da 9:1.
 - **Un solo acento en los dos temas.** De noche cambia el fondo —carbón cálido—
   pero el ámbar se queda: la marca no debería cambiar de color al anochecer.
 - **Foco visible obligatorio.** Una única regla con `:where(…):focus-visible`

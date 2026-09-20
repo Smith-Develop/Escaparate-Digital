@@ -29,6 +29,10 @@
   --accent: #f2b25c;
   --accent-soft: #fdf1de;
   --on-accent: #2a1f10;
+  /* El ámbar de los rellenos como texto pequeño da 1,56:1 sobre la salvia, muy
+     lejos del 4,5 que necesita. Este es el mismo tono llevado a un ámbar
+     tostado: 4,84:1 sobre el fondo y 5,77:1 sobre blanco. */
+  --accent-ink: #8f5a0e;
   --danger: #d1553f;
   --scrim: rgb(40 35 25 / 0.45);
   --checker-a: #eceade;
@@ -62,6 +66,8 @@
   --accent: #f2b25c;
   --accent-soft: #2e2519;
   --on-accent: #241a0c;
+  /* Sobre carbón el ámbar vivo ya da 9:1: aquí no hace falta oscurecerlo. */
+  --accent-ink: #f2b25c;
   --danger: #ff6b56;
   --scrim: rgb(0 0 0 / 0.7);
   --checker-a: #24221d;
@@ -90,6 +96,7 @@
   --color-line: var(--line);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
   --color-on-accent: var(--on-accent);
   --color-danger: var(--danger);
   --color-scrim: var(--scrim);

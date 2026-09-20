@@ -191,7 +191,7 @@ export function BodyPhoto({ avatar }: { avatar: AvatarParams }) {
             {/* Más vertical que el visor de prendas: hay que caber entero. */}
             <CapturaNativa
               onCapture={handleCapture}
-              guide={<Mannequin avatar={avatar} className="size-full text-accent" />}
+              guide={<Mannequin avatar={avatar} className="size-full text-accent-ink" />}
               hint="De frente, brazos algo separados y fondo liso. Usa el temporizador de tu cámara para colocarte."
             />
             <Button variant="ghost" full className="mt-4" onClick={() => setStep("resumen")}>

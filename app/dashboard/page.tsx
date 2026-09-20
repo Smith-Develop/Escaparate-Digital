@@ -128,7 +128,7 @@ export default function DashboardPage() {
         <div className="flex items-baseline justify-between">
           <SectionTitle>Añadido recientemente</SectionTitle>
           {items.length > 0 && (
-            <Link href="/dashboard/closet" className="text-sm text-accent">
+            <Link href="/dashboard/closet" className="text-sm text-accent-ink">
               Ver todo
             </Link>
           )}

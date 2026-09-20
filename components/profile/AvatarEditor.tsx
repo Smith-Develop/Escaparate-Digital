@@ -65,7 +65,7 @@ export function AvatarEditor({
       {/* La figura acompaña al desplazamiento: se ve el efecto de cada ajuste. */}
       <div className="sticky top-0 z-10 bg-canvas/95 px-5 pb-3 pt-1 backdrop-blur">
         <div className="mx-auto h-56 w-full max-w-48">
-          <Mannequin avatar={params} className="size-full text-accent" />
+          <Mannequin avatar={params} className="size-full text-accent-ink" />
         </div>
       </div>
 

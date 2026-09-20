@@ -52,7 +52,7 @@ export function ClosetView({
             <button
               type="button"
               onClick={resetFilters}
-              className="text-sm text-accent underline underline-offset-4"
+              className="text-sm text-accent-ink underline underline-offset-4"
             >
               Limpiar filtros
             </button>

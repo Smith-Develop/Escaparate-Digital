@@ -21,7 +21,7 @@ export default function LoginPage() {
       />
       <p className="mt-6 text-center text-sm text-ink-muted">
         ¿Aún no tienes armario?{" "}
-        <Link href="/register" className="text-accent underline underline-offset-4">
+        <Link href="/register" className="text-accent-ink underline underline-offset-4">
           Crea tu cuenta
         </Link>
       </p>

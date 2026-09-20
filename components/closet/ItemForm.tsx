@@ -265,7 +265,7 @@ export function ItemForm({
         <button
           type="button"
           onClick={() => setShowExtras(true)}
-          className="self-start text-sm text-accent underline underline-offset-4"
+          className="self-start text-sm text-accent-ink underline underline-offset-4"
         >
           + Añadir marca y notas
         </button>

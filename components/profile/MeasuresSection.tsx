@@ -29,7 +29,7 @@ export function MeasuresSection({ avatar }: { avatar: AvatarParams }) {
           type="button"
           onClick={() => setAbierto((v) => !v)}
           aria-expanded={abierto}
-          className="text-sm text-accent underline underline-offset-4"
+          className="text-sm text-accent-ink underline underline-offset-4"
         >
           {abierto ? "Listo" : "Ajustar"}
         </button>
@@ -44,7 +44,7 @@ export function MeasuresSection({ avatar }: { avatar: AvatarParams }) {
           <motion.div key="resumen" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-5">
             <div className="edge flex gap-4 rounded-2xl bg-surface p-4">
               <div className="h-32 w-20 shrink-0">
-                <Mannequin avatar={avatar} className="size-full text-accent" />
+                <Mannequin avatar={avatar} className="size-full text-accent-ink" />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm leading-relaxed text-ink-muted">

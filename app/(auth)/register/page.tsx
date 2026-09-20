@@ -24,7 +24,7 @@ export default function RegisterPage() {
       />
       <p className="mt-6 text-center text-sm text-ink-muted">
         ¿Ya tienes cuenta?{" "}
-        <Link href="/login" className="text-accent underline underline-offset-4">
+        <Link href="/login" className="text-accent-ink underline underline-offset-4">
           Entra aquí
         </Link>
       </p>

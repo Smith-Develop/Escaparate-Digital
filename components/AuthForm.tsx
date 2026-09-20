@@ -36,7 +36,7 @@ export function AuthForm({ mode, onSubmit }: Props) {
 
   if (confirmar) {
     return (
-      <div className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-6">
+      <div className="edge flex flex-col gap-3 rounded-[1.75rem] bg-surface p-6">
         <h1 className="font-display text-2xl">Revisa tu correo</h1>
         <p className="text-sm leading-relaxed text-ink-muted">
           Te hemos enviado un enlace a <strong className="text-ink">{datos.email}</strong>. Púlsalo
@@ -53,7 +53,7 @@ export function AuthForm({ mode, onSubmit }: Props) {
     <motion.form
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-6"
+      className="edge flex flex-col gap-4 rounded-[1.75rem] bg-surface p-6"
       onSubmit={async (e) => {
         e.preventDefault();
         setEnviando(true);
@@ -68,12 +68,22 @@ export function AuthForm({ mode, onSubmit }: Props) {
         }
       }}
     >
-      <h1 className="font-display text-2xl">{isRegister ? "Crea tu cuenta" : "Bienvenido"}</h1>
+      <div>
+        <h1 className="font-display text-[1.75rem] leading-tight">
+          {isRegister ? "Crea tu cuenta" : "Bienvenido de vuelta"}
+        </h1>
+        <p className="mt-1 text-sm text-ink-muted">
+          {isRegister
+            ? "Empieza a digitalizar tu armario en un minuto."
+            : "Entra y sigue combinando donde lo dejaste."}
+        </p>
+      </div>
 
       {isRegister && (
         <label className="block">
           <Label>Nombre</Label>
           <Input
+            className="!bg-surface-2 !shadow-none"
             name="name"
             autoComplete="name"
             required
@@ -87,6 +97,7 @@ export function AuthForm({ mode, onSubmit }: Props) {
       <label className="block">
         <Label>Correo</Label>
         <Input
+          className="!bg-surface-2 !shadow-none"
           name="email"
           type="email"
           inputMode="email"
@@ -101,6 +112,7 @@ export function AuthForm({ mode, onSubmit }: Props) {
       <label className="block">
         <Label>Contraseña</Label>
         <Input
+          className="!bg-surface-2 !shadow-none"
           name="password"
           type="password"
           autoComplete={isRegister ? "new-password" : "current-password"}
