@@ -2,6 +2,7 @@
 
 Aplicación web *mobile-first* para digitalizar tu ropa y montar conjuntos con las
 fotos reales de tus prendas, sin abrir el armario.
+
 ## Puesta en marcha
 
 Escaparate no tiene servidor propio: es una aplicación de cliente que habla
@@ -474,6 +475,26 @@ se registra en producción, para no servir respuestas viejas mientras se desarro
 
 Dentro del APK el service worker no interviene —los ficheros ya son locales—, así
 que nada importante depende de él.
+
+**El aviso para instalarla** ([InstalarApp.tsx](components/InstalarApp.tsx)) tiene
+dos caminos, porque los navegadores no se parecen: Android y escritorio avisan
+con `beforeinstallprompt` cuando la app cumple los requisitos, y ese aviso hay
+que guardarlo porque solo sirve una vez y solo tras un gesto del usuario; iOS no
+tiene ese evento, así que allí se explica el camino a mano (Compartir → Añadir a
+pantalla de inicio), que es la única forma de instalar sin pasar por la App
+Store. No aparece si ya está instalada, ni dentro del APK, ni si se descartó.
+
+## La barra de navegación y el alto de la pantalla
+
+El panel es una columna de **altura exacta de la ventana** (`h-dvh`) que no
+desplaza el documento: lo que se desplaza es el contenido, y la barra inferior es
+el último hijo de esa columna.
+
+Antes la barra era `sticky bottom-0`, y eso la ata a que la página tenga scroll:
+en las pantallas que no lo tienen —el estudio, o el perfil en una pantalla
+alta— se quedaba flotando a media altura, allí donde terminara el contenido. Con
+la columna de altura fija está abajo por construcción, y además deja de moverse
+cuando el navegador del móvil esconde o enseña su barra de direcciones.
 
 ## Scripts
 

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { AvisoSinConexion } from "@/components/AvisoSinConexion";
+import { InstalarApp } from "@/components/InstalarApp";
 import { useSesion } from "@/components/SesionProvider";
 import { useEspejo } from "@/lib/local/espejo";
 
@@ -43,9 +44,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="flex min-h-dvh flex-1 flex-col">
-      <div className="mx-auto flex w-full max-w-lg flex-1 flex-col">
+    // Altura exacta de la ventana y nada de desplazar el documento: lo que se
+    // desplaza es el contenido. Es lo que mantiene la barra pegada abajo en
+    // todas las pantallas, incluidas las que no llegan a llenar el alto, y lo
+    // que evita que se mueva cuando el navegador del móvil esconde o enseña su
+    // barra de direcciones.
+    <div className="flex h-dvh flex-col overflow-hidden">
+      {/* Los avisos van fuera de la zona que se desplaza, para que no se
+          pierdan al bajar, pero con el mismo ancho que el contenido. */}
+      <div className="mx-auto w-full max-w-lg shrink-0">
         <AvisoSinConexion />
+        <InstalarApp />
+      </div>
+      <div className="mx-auto flex w-full max-w-lg flex-1 flex-col overflow-y-auto overscroll-contain">
         {children}
       </div>
       <MobileNav />

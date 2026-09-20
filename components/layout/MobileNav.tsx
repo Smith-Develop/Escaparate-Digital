@@ -16,7 +16,12 @@ export function MobileNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="sticky bottom-0 z-30 border-t border-line bg-canvas/95 backdrop-blur pb-safe">
+    // `shrink-0` y nada de `sticky`: la barra es el último hijo de una columna de
+    // altura fija, así que está abajo por construcción. Con `sticky bottom-0`
+    // dependía de que la página tuviera scroll, y en las que no lo tienen
+    // —estudio, o perfil en una pantalla alta— se quedaba flotando a media
+    // altura, allí donde terminara el contenido.
+    <nav className="z-30 shrink-0 border-t border-line bg-canvas/95 backdrop-blur pb-safe">
       <ul className="mx-auto flex max-w-lg">
         {TABS.map(({ href, label, icon: Icon }) => {
           const active = href === "/dashboard" ? pathname === href : pathname.startsWith(href);
