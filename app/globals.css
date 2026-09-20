@@ -107,6 +107,9 @@
 
   /* Las tarjetas de la referencia son muy redondeadas: 24 px arriba y 32 en
      las hojas que suben desde abajo. */
+  /* 52 px: el porte de los botones anclados de la portada. */
+  --spacing-13: 3.25rem;
+
   --radius-xl: 1.5rem;
   --radius-2xl: 2rem;
 }

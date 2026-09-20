@@ -21,13 +21,18 @@ export default function RegisterPage() {
           if (haySesion) router.replace("/dashboard");
           return haySesion ? undefined : "confirmar-correo";
         }}
+        pie={
+          <p className="text-center text-sm text-ink-muted">
+            ¿Ya tienes cuenta?{" "}
+            <Link
+              href="/login"
+              className="text-accent-ink underline underline-offset-4"
+            >
+              Entra aquí
+            </Link>
+          </p>
+        }
       />
-      <p className="mt-6 text-center text-sm text-ink-muted">
-        ¿Ya tienes cuenta?{" "}
-        <Link href="/login" className="text-accent-ink underline underline-offset-4">
-          Entra aquí
-        </Link>
-      </p>
     </>
   );
 }

@@ -229,10 +229,14 @@ completarlas.
 
 ## Cuánto vale el armario
 
-**Armario → Inversión** ([app/dashboard/closet/inversion](app/dashboard/closet/inversion/page.tsx))
-responde a en qué se ha ido el dinero: el total invertido, el precio medio, la
-prenda más cara y el reparto por categoría, por tipo de prenda, por marca y por
-año de compra. El total también aparece en el inicio, y desde ahí se entra.
+El **inicio** responde a en qué se ha ido el dinero: el total invertido, el
+precio medio, la prenda más cara y el reparto por categoría, por tipo de prenda,
+por marca y por año de compra, debajo del resumen del armario
+([ResumenInversion.tsx](components/inicio/ResumenInversion.tsx)).
+
+Vivió un tiempo en una pantalla aparte y se trajo aquí: es un dato que solo
+sirve si se ve de pasada, y tenerlo detrás de un botón significaba no mirarlo
+nunca.
 
 Todo se calcula en el servidor a partir de las prendas
 ([lib/inversion.ts](lib/inversion.ts)); no hay ninguna cifra guardada que pueda
@@ -453,6 +457,14 @@ manda en todo lo que se puede tocar. Lo que eso significa en este código:
   baile de una pantalla a otra. Sin ella, el título manda: grande y a la
   izquierda. Las dos viven en [Header.tsx](components/layout/Header.tsx), junto
   al botón redondo que comparten.
+- **Portada y acceso son pantallas de bienvenida**: la ilustración manda, el
+  título va en mayúsculas y **las acciones se anclan abajo**, que es donde llega
+  el pulgar. El anclaje se hace con `min-h-dvh` y `mt-auto`, no con posición
+  fija: en el móvil, un elemento fijo pelea con el teclado y con la barra del
+  navegador. La ilustración es un vector propio
+  ([ArmarioAbierto.tsx](components/ilustraciones/ArmarioAbierto.tsx)): pesa
+  menos de 3 kB, no se pixela y toma sus colores del tema, así que de noche no
+  hay que servir otra versión.
 - **La barra inferior es una pastilla que flota**, no un borde pegado al
   fondo, y marca dónde estás con un punto sobre el icono que se desplaza de una
   pestaña a otra.

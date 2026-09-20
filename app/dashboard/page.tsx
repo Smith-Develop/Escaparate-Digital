@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { BotonCabecera, Header } from "@/components/layout/Header";
 import { Titulo } from "@/components/Titulo";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ResumenInversion } from "@/components/inicio/ResumenInversion";
 import { Foto } from "@/components/ui/Foto";
 import { Stat } from "@/components/ui/Stat";
 import { centimosRedondeados } from "@/lib/dinero";
@@ -64,11 +65,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-3 gap-3 px-5">
         <Stat value={items.length} label="Prendas" />
         <Stat value={looks.length} label="Looks" />
-        <Stat
-          value={centimosRedondeados(invertido)}
-          label="Invertido"
-          href="/dashboard/closet/inversion"
-        />
+        <Stat value={centimosRedondeados(invertido)} label="Invertido" />
       </div>
 
       <nav className="mt-6 grid grid-cols-3 gap-3 px-5">
@@ -124,7 +121,7 @@ export default function DashboardPage() {
         </section>
       )}
 
-      <section className="mt-8 flex-1 px-5 pb-24">
+      <section className="mt-8 px-5">
         <div className="flex items-baseline justify-between">
           <SectionTitle>Añadido recientemente</SectionTitle>
           {items.length > 0 && (
@@ -164,6 +161,15 @@ export default function DashboardPage() {
             ))}
           </ul>
         )}
+      </section>
+
+      {/* Lo que vale el armario, aquí y no en una pantalla aparte: es un dato
+          que solo sirve si se ve de pasada. */}
+      <section className="mt-8 flex-1 px-5 pb-24">
+        <SectionTitle>Valor del armario</SectionTitle>
+        <div className="mt-3">
+          <ResumenInversion items={items} />
+        </div>
       </section>
     </>
   );

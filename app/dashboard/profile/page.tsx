@@ -52,7 +52,7 @@ export default function ProfilePage() {
           <Stat
             value={centimosRedondeados(invertido)}
             label="Invertido"
-            href="/dashboard/closet/inversion"
+            href="/dashboard"
           />
         </div>
 

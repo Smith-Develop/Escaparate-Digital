@@ -18,13 +18,18 @@ export default function LoginPage() {
           await entrar({ email: datos.email, password: datos.password });
           router.replace("/dashboard");
         }}
+        pie={
+          <p className="text-center text-sm text-ink-muted">
+            ¿Aún no tienes armario?{" "}
+            <Link
+              href="/register"
+              className="text-accent-ink underline underline-offset-4"
+            >
+              Crea tu cuenta
+            </Link>
+          </p>
+        }
       />
-      <p className="mt-6 text-center text-sm text-ink-muted">
-        ¿Aún no tienes armario?{" "}
-        <Link href="/register" className="text-accent-ink underline underline-offset-4">
-          Crea tu cuenta
-        </Link>
-      </p>
     </>
   );
 }
