@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useSyncExternalStore } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { CategoriasVertical } from "@/components/studio/CategoriasVertical";
 import { CategoryRail, NINGUNA } from "@/components/studio/CategoryRail";
 import { NINGUNO } from "@/components/studio/LookRail";
 import { SidePanel } from "@/components/studio/SidePanel";
@@ -12,6 +13,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { LAYER_BY_CATEGORY } from "@/lib/taxonomy";
 import { bodyReference } from "@/lib/placement";
 import { randomOutfit, useOutfit } from "@/lib/store";
+import { degradadoDelConjunto } from "@/lib/paleta";
 import {
   escribirBooleana,
   leerBooleana,
@@ -146,13 +148,18 @@ export function StudioView({ avatar, items, looks, initialLookId }: Props) {
           redondeadas, igual que la foto de producto del diseño. Los controles
           flotan encima en vez de ocupar una cabecera propia, que en una
           pantalla de móvil es espacio que le quitas a la ropa. */}
-      <div className="bg-hero relative flex flex-1 items-stretch gap-3 overflow-hidden rounded-[1.75rem] p-3">
+      <div
+        className="edge relative flex flex-1 items-stretch gap-3 overflow-hidden rounded-[1.75rem] p-3"
+        style={{ background: degradadoDelConjunto(equipped) }}
+      >
+        <CategoriasVertical active={category} onChange={setCategory} counts={counts} />
+
         <div className="relative min-w-0 flex-1 overflow-hidden">
           <ZoomPan>
             <OutfitCanvas items={equipped} body={photo} />
           </ZoomPan>
           {equipped.length === 0 && (
-            <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-[11px] text-on-accent/70">
+            <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-[11px] text-ink-muted">
               Elige prendas abajo o pulsa Aleatorio
             </p>
           )}
@@ -170,7 +177,7 @@ export function StudioView({ avatar, items, looks, initialLookId }: Props) {
         <button
           type="button"
           onClick={() => setOutfit(randomOutfit(items, equipped))}
-          className="edge absolute left-5 top-5 flex min-h-9 items-center gap-1.5 rounded-full bg-surface px-3.5 text-xs font-medium text-ink"
+          className="edge absolute right-24 top-5 flex min-h-9 items-center gap-1.5 rounded-full bg-surface px-3.5 text-xs font-medium text-ink"
         >
           <span aria-hidden>🎲</span> Aleatorio
         </button>
@@ -183,7 +190,7 @@ export function StudioView({ avatar, items, looks, initialLookId }: Props) {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               onClick={clear}
-              className="edge absolute bottom-5 left-5 min-h-9 rounded-full bg-surface px-3.5 text-xs text-ink-muted"
+              className="edge absolute bottom-5 left-20 min-h-9 rounded-full bg-surface px-3.5 text-xs text-ink-muted"
             >
               Desvestir
             </motion.button>
@@ -216,13 +223,11 @@ export function StudioView({ avatar, items, looks, initialLookId }: Props) {
 
         <CategoryRail
           active={category}
-          onCategoryChange={setCategory}
           items={byCategory.get(category) ?? []}
           equippedIds={equippedAllIn(category)}
           onCenter={centrar}
           onToggle={alternar}
           onShuffle={() => shuffle(category)}
-          counts={counts}
         />
       </div>
 

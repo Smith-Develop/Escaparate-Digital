@@ -20,8 +20,18 @@ import type { Grupo } from "@/lib/inversion";
 /** Tonos del anillo: el ámbar de la marca y variaciones suyas, de más a menos. */
 const TONOS = ["var(--accent)", "#d9944a", "#b8783a", "#8f5a0e", "#6b4a2a"];
 
-export function AnilloCategorias({ grupos, total }: { grupos: Grupo[]; total: number }) {
-  const conGasto = grupos.filter((g) => g.total > 0);
+/**
+ * Reparto del armario por categoría, **contando prendas**.
+ *
+ * Antes repartía el gasto, y eso dejaba fuera a cualquier categoría sin precios
+ * anotados: con la mitad del armario sin precio, el anillo enseñaba una sola
+ * porción y parecía que solo había camisetas. Contando prendas aparecen todas,
+ * que es lo que se espera de un reparto del armario; el dinero se desglosa
+ * debajo, en su lista.
+ */
+export function AnilloCategorias({ grupos }: { grupos: Grupo[] }) {
+  const conGasto = grupos.filter((g) => g.prendas > 0);
+  const total = conGasto.reduce((suma, g) => suma + g.prendas, 0);
   if (conGasto.length === 0 || total === 0) return null;
 
   const R = 54;
@@ -34,18 +44,18 @@ export function AnilloCategorias({ grupos, total }: { grupos: Grupo[]; total: nu
     (acc, grupo) => {
       const previo = acc.at(-1);
       const inicio = previo ? previo.inicio + previo.porcion : 0;
-      return [...acc, { grupo, inicio, porcion: grupo.total / total }];
+      return [...acc, { grupo, inicio, porcion: grupo.prendas / total }];
     },
     [],
   );
 
   return (
     <section className="edge rounded-[1.5rem] bg-surface p-5">
-      <h2 className="text-xs uppercase tracking-[0.18em] text-ink-faint">Reparto por categoría</h2>
+      <h2 className="text-xs uppercase tracking-[0.18em] text-ink-faint">Prendas por categoría</h2>
 
       <div className="mt-4 flex items-center gap-5">
         <svg viewBox="0 0 140 140" className="size-36 shrink-0 -rotate-90" role="img"
-             aria-label={`Reparto del gasto: ${conGasto.map((g) => `${g.label}, ${Math.round((g.total / total) * 100)} por ciento`).join("; ")}`}>
+             aria-label={`Reparto del armario: ${conGasto.map((g) => `${g.label}, ${g.prendas} prendas`).join("; ")}`}>
           <circle cx="70" cy="70" r={R} fill="none" stroke="var(--color-surface-2)" strokeWidth="16" />
           {arcos.map(({ grupo, inicio, porcion }, i) => {
             return (
@@ -78,7 +88,7 @@ export function AnilloCategorias({ grupos, total }: { grupos: Grupo[]; total: nu
               />
               <span className="min-w-0 flex-1 truncate">{grupo.label}</span>
               <span className="tabular shrink-0 text-xs text-ink-muted">
-                {Math.round((grupo.total / total) * 100)}%
+                {grupo.prendas}
               </span>
             </li>
           ))}

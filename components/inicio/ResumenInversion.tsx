@@ -22,10 +22,10 @@ import type { Item } from "@/lib/types";
 /** Los gráficos, que en el inicio van antes que los desgloses en lista. */
 export function GraficosInversion({ items }: { items: Item[] }) {
   const inv = calcularInversion(items);
-  if (inv.conPrecio === 0) return null;
+  if (items.length === 0) return null;
   return (
     <div className="flex flex-col gap-4">
-      <AnilloCategorias grupos={inv.porCategoria} total={inv.total} />
+      <AnilloCategorias grupos={inv.porCategoria} />
       <LineaPorAño grupos={inv.porAño} />
     </div>
   );

@@ -2,18 +2,29 @@
  * Dinero del armario.
  *
  * Los precios se guardan en céntimos como enteros: sumar decimales en coma
- * flotante acaba enseñando 1.229,999999 en el total del armario. La app no pide
- * la moneda en ningún momento, así que aquí no se imprime ningún símbolo; el
- * usuario sabe en qué moneda anota sus precios.
+ * flotante acaba enseñando 1.229,999999 en el total del armario.
+ *
+ * Se imprimen en euros, con el símbolo detrás y separado, que es como se
+ * escribe en español. Si algún día hace falta otra moneda, este es el único
+ * fichero que hay que tocar.
  */
 
-/** «39,90» a partir de 3990 céntimos. */
+/** «39,90 €» a partir de 3990 céntimos. */
 export function centimosATexto(centimos: number, decimales = 2) {
   return (centimos / 100).toLocaleString("es-ES", {
+    style: "currency",
+    currency: "EUR",
     minimumFractionDigits: decimales,
     maximumFractionDigits: decimales,
   });
 }
+
+/**
+ * El mismo importe pero sin símbolo, para rellenar un campo de formulario.
+ * Con el «€» dentro, el usuario tendría que borrarlo para escribir otra cifra.
+ */
+export const centimosAEntrada = (centimos: number) =>
+  (centimos / 100).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 /** Totales grandes sin decimales: en un resumen, los céntimos son ruido. */
 export const centimosRedondeados = (centimos: number) => centimosATexto(centimos, 0);

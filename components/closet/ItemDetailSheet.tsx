@@ -9,7 +9,9 @@ import { Sheet } from "@/components/ui/Sheet";
 import { Button } from "@/components/ui/Button";
 import { PlacementPanel } from "@/components/closet/PlacementPanel";
 import { bodyReference, clampPlacement, type Placement } from "@/lib/placement";
-import { centimosATexto } from "@/lib/dinero";
+import { centimosAEntrada, centimosATexto, precioACentimos } from "@/lib/dinero";
+import { EMPTY_DRAFT, ItemForm, type ItemDraft } from "@/components/closet/ItemForm";
+import type { CategoryId } from "@/lib/taxonomy";
 import { CATEGORIES, colorsWith, labelFor, occasionsWith, seasonsWith } from "@/lib/taxonomy";
 import { useOutfit } from "@/lib/store";
 import type { AvatarParams, Item, Tag } from "@/lib/types";
@@ -22,6 +24,8 @@ export function ItemDetailSheet({ item, avatar, tags, onClose }: Props) {
   const toggleEquipped = useOutfit((s) => s.toggle);
   const [busy, setBusy] = useState(false);
   const [placing, setPlacing] = useState<Placement | null>(null);
+  const [editando, setEditando] = useState<ItemDraft | null>(null);
+  const [fallo, setFallo] = useState<string | null>(null);
 
   if (!item) return <Sheet open={false} onClose={onClose}>{null}</Sheet>;
 
@@ -64,6 +68,54 @@ export function ItemDetailSheet({ item, avatar, tags, onClose }: Props) {
     }
   }
 
+  /** La ficha guardada, en la forma que espera el formulario de alta. */
+  function aBorrador(prenda: Item): ItemDraft {
+    return {
+      ...EMPTY_DRAFT,
+      name: prenda.name,
+      category: prenda.category as CategoryId,
+      subcategory: prenda.subcategory,
+      color: prenda.color,
+      season: prenda.season,
+      occasion: prenda.occasion,
+      brand: prenda.brand ?? "",
+      notes: prenda.notes ?? "",
+      size: prenda.size ?? "",
+      price: prenda.priceCents === null ? "" : centimosAEntrada(prenda.priceCents),
+      // El campo de fecha quiere aaaa-mm-dd, y la fecha se guardó a medianoche
+      // UTC: cortarla en UTC evita que retroceda un día al oeste de Greenwich.
+      purchasedAt: prenda.purchasedAt ? prenda.purchasedAt.toISOString().slice(0, 10) : "",
+    };
+  }
+
+  async function guardarFicha() {
+    if (!item || !editando) return;
+    setBusy(true);
+    setFallo(null);
+    try {
+      await actualizarPrenda(item.id, {
+        name: editando.name,
+        category: editando.category,
+        subcategory: editando.subcategory,
+        color: editando.color,
+        season: editando.season,
+        occasion: editando.occasion,
+        brand: editando.brand || null,
+        notes: editando.notes || null,
+        size: editando.size || null,
+        priceCents: precioACentimos(editando.price),
+        purchasedAt: editando.purchasedAt || null,
+      });
+      await refrescar();
+      setEditando(null);
+      onClose();
+    } catch (error) {
+      setFallo(error instanceof Error ? error.message : "No se ha podido guardar");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function remove() {
     if (!item) return;
     if (!confirm(`¿Eliminar "${item.name}" del armario?`)) return;
@@ -77,6 +129,25 @@ export function ItemDetailSheet({ item, avatar, tags, onClose }: Props) {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (editando) {
+    return (
+      <Sheet open onClose={() => setEditando(null)} title={`Editar ${item.name}`}>
+        <ItemForm
+          draft={editando}
+          onChange={setEditando}
+          onSubmit={guardarFicha}
+          saving={busy}
+          error={fallo}
+          submitLabel="Guardar cambios"
+          tags={tags}
+        />
+        <Button variant="ghost" full className="mt-2" onClick={() => setEditando(null)} disabled={busy}>
+          Cancelar
+        </Button>
+      </Sheet>
+    );
   }
 
   if (placing) {
@@ -149,6 +220,9 @@ export function ItemDetailSheet({ item, avatar, tags, onClose }: Props) {
           }}
         >
           Combinar en el estudio
+        </Button>
+        <Button full variant="secondary" onClick={() => setEditando(aBorrador(item))}>
+          Editar ficha
         </Button>
         <Button
           full

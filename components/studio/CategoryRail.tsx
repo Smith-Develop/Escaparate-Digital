@@ -1,7 +1,6 @@
 "use client";
 
 import { Foto } from "@/components/ui/Foto";
-import { CATEGORIES } from "@/lib/taxonomy";
 import { useCarrusel } from "@/components/studio/useCarrusel";
 import type { Item } from "@/lib/types";
 
@@ -10,7 +9,6 @@ export const NINGUNA = "__ninguna";
 
 type Props = {
   active: string;
-  onCategoryChange: (category: string) => void;
   /** Prendas de la categoría activa. */
   items: Item[];
   /** Prendas puestas de esa categoría. Solo los accesorios pueden ser varias. */
@@ -20,7 +18,6 @@ type Props = {
   /** Pone o quita una prenda, para las categorías que admiten varias. */
   onToggle: (id: string) => void;
   onShuffle: () => void;
-  counts: Record<string, number>;
 };
 
 /**
@@ -37,15 +34,12 @@ type Props = {
  */
 export function CategoryRail({
   active,
-  onCategoryChange,
   items,
   equippedIds,
   onCenter,
   onToggle,
   onShuffle,
-  counts,
 }: Props) {
-  const activeInfo = CATEGORIES.find((c) => c.id === active);
   // Los accesorios se acumulan —pulsera, cadena, gafas—, así que centrar no
   // sirve: deslizando se irían poniendo todos. Ahí se elige tocando.
   const varios = active === "accesorio";
@@ -61,35 +55,6 @@ export function CategoryRail({
 
   return (
     <div className="flex flex-col gap-2">
-      <div role="tablist" aria-label="Categorías" className="no-scrollbar flex gap-2 overflow-x-auto px-4">
-        {CATEGORIES.map((category) => {
-          const activa = category.id === active;
-          const count = counts[category.id] ?? 0;
-          return (
-            <button
-              key={category.id}
-              type="button"
-              role="tab"
-              aria-selected={activa}
-              aria-label={`${category.label} (${count})`}
-              onClick={() => onCategoryChange(category.id)}
-              className={[
-                "flex min-h-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl px-3 transition-shadow",
-                activa ? "bg-accent text-on-accent" : "bg-surface-2 text-ink-muted",
-              ].join(" ")}
-            >
-              <span className="text-xl leading-none" aria-hidden>
-                {category.icon}
-              </span>
-              <span className="text-[10px] leading-tight">
-                {category.short}
-                <span className="tabular ml-1 opacity-60">{count}</span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
       <div className="relative flex items-center gap-2 px-4 pb-1">
         <div className="relative min-w-0 flex-1">
           {!varios && (
@@ -190,7 +155,7 @@ export function CategoryRail({
           <button
             type="button"
             onClick={onShuffle}
-            aria-label={`Probar otra prenda de ${activeInfo?.label ?? active}`}
+            aria-label="Probar otra prenda de esta categoría"
             className="edge grid size-10 shrink-0 place-items-center rounded-xl bg-surface text-ink-muted transition-colors hover:text-ink"
           >
             <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>

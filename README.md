@@ -246,9 +246,13 @@ mitad del armario no tiene precio sería mentir con estadísticas.
 
 Las barras se miden contra el grupo que más suma, no contra el total: comparadas
 con el total, en un armario repartido todas salen igual de cortas y no se
-distingue nada. Y los importes se imprimen sin símbolo de moneda
-([lib/dinero.ts](lib/dinero.ts)) porque la app nunca pregunta en qué moneda
-anotas los precios.
+distingue nada. Los importes van en euros, con el símbolo detrás y separado como
+se escribe en español ([lib/dinero.ts](lib/dinero.ts)), y ese fichero es el único
+que habría que tocar para cambiar de moneda.
+
+El anillo de categorías cuenta **prendas**, no dinero. Repartiendo el gasto, una
+categoría sin precios anotados desaparecía del anillo, y con medio armario sin
+precio parecía que solo había camisetas.
 
 ## Cómo funciona el probador
 
