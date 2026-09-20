@@ -16,7 +16,9 @@
       "Read(//var/run/**)",
       "Bash(docker context *)",
       "Bash(systemctl is-active *)",
-      "Bash(curl -s -o /dev/null -w \"app: %{http_code}\\\\n\" http://localhost:3000/dashboard/closet)"
+      "Bash(curl -s -o /dev/null -w \"app: %{http_code}\\\\n\" http://localhost:3000/dashboard/closet)",
+      "Bash(xargs -r -I{} sh -c 'grep -ao \"login[^\\\\\"]\\\\{0,3\\\\}\" {} | sort -u | head -3')",
+      "Bash(git check-ignore *)"
     ]
   }
 }

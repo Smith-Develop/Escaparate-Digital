@@ -36,9 +36,15 @@ const fallo = (error: { message: string } | null) => {
   throw texto === "Sin conexión" ? new ErrorDeRed() : new ErrorDeDatos(texto);
 };
 
-/** Dónde vuelve el usuario tras confirmar el correo. */
+/**
+ * Dónde vuelve el usuario tras confirmar el correo.
+ *
+ * Con la barra final, que es la ruta de verdad: la app se compila con
+ * `trailingSlash`, y aunque un nginx resuelva la diferencia por su cuenta, la
+ * lista blanca de direcciones de GoTrue compara el texto tal cual.
+ */
 const destinoDeVuelta = () =>
-  typeof window === "undefined" ? undefined : `${window.location.origin}/login`;
+  typeof window === "undefined" ? undefined : `${window.location.origin}/login/`;
 
 export async function registrar({
   name,

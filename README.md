@@ -48,6 +48,37 @@ En el APK **los ficheros viajan dentro**: la app abre sin tocar la red. Por eso
 `capacitor.config.ts` no define `server.url`, que convertiría la aplicación en
 una cáscara que carga la web por internet.
 
+### Desplegar en Coolify
+
+Cuatro ajustes en el recurso, y los cuatro tienen su motivo:
+
+| Ajuste | Valor | Por qué |
+| --- | --- | --- |
+| **Build Pack** | `Dockerfile` | Con Nixpacks, Coolify ve un proyecto de Next y arranca `npm start`, que aquí no existe: la app es estática. El contenedor muere al nacer y el proxy devuelve 502 |
+| **Puerto** | `80` o `3000` | `nginx.conf` escucha en los dos justamente para que dé igual cuál haya detectado |
+| **Variables** | las tres `NEXT_PUBLIC_*` | Marcadas como **Build Variable**: se resuelven al construir la imagen. Si solo están como variables de ejecución, la app se despliega pero se abre diciendo que faltan |
+| **Salud** | `/salud` | Devuelve `ok` en texto plano |
+
+Después de cambiar cualquiera de las tres variables hay que **reconstruir**:
+reiniciar el contenedor no basta, porque sus valores ya están dentro del
+JavaScript compilado.
+
+Si el registro de usuarios va a usarse desde la web, hace falta además que el
+enlace del correo de confirmación sepa volver. GoTrue solo admite las
+direcciones de su lista blanca, así que en el recurso de **Supabase** —no en el
+de Escaparate— se añade la de la app **sin quitar las que ya hubiera**, porque la
+instancia la comparten varias:
+
+```
+GOTRUE_URI_ALLOW_LIST = <lo que ya haya>,https://tu-dominio/**
+```
+
+Para comprobar que ha salido bien, sin abrir el navegador:
+
+```bash
+curl https://tu-dominio/salud     # → ok
+```
+
 ## Sin servidor, y por qué
 
 La versión anterior renderizaba cada pantalla en el servidor consultando SQLite

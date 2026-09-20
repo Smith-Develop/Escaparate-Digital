@@ -32,6 +32,10 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# La plantilla sí: no lleva ningún secreto y es lo que explica qué variables
+# hacen falta. Sin esta excepción, quien clone el repositorio no tiene por dónde
+# empezar.
+!.env.example
 
 # vercel
 .vercel
