@@ -6,6 +6,7 @@ import { AccountCard } from "@/components/profile/AccountCard";
 import { BodyPhoto } from "@/components/profile/BodyPhoto";
 import { MeasuresSection } from "@/components/profile/MeasuresSection";
 import { CerrarSesion } from "@/components/profile/CerrarSesion";
+import { EntradaPanel } from "@/components/profile/EntradaPanel";
 import { Espacio } from "@/components/profile/Espacio";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Aparece, ApareceSeccion } from "@/components/ui/Aparece";
@@ -86,6 +87,9 @@ export default function ProfilePage() {
           <h2 className="mb-2 text-xs uppercase tracking-[0.14em] text-ink-faint">Cuenta</h2>
           <CerrarSesion />
         </ApareceSeccion>
+
+        {/* Solo aparece si el servicio dice que esta cuenta administra. */}
+        <EntradaPanel />
       </div>
     </>
   );

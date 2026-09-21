@@ -1,0 +1,14 @@
+{
+  "name": "escaparate-servicio-admin",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "El detrás del panel de administración de Escaparate: la única pieza que usa la clave de servicio. Sin dependencias, a propósito.",
+  "scripts": {
+    "start": "node index.mjs",
+    "dev": "node --env-file=../.env.local index.mjs"
+  },
+  "engines": {
+    "node": ">=20.6"
+  }
+}

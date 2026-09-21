@@ -135,7 +135,9 @@ ni se hace copia, porque solo sirve para rehacer el recorte, que ya necesita red
 ```
 app/
 ├── (auth)/              # entrar y registrarse contra Supabase Auth
+├── recuperar/           # pedir el enlace y elegir contraseña nueva
 ├── dashboard/           # inicio, armario, estudio, looks, perfil, inversión
+├── admin/               # panel de superadministración (solo si está configurado)
 └── manifest.ts          # manifiesto de la PWA
 components/
 ├── ui/                  # botón, chip, campos, hoja inferior, Foto
@@ -147,6 +149,7 @@ components/
 lib/
 ├── supabase/            # el cliente y dónde se guarda la sesión
 ├── datos/               # lo que antes eran las rutas de API
+├── admin/               # cliente del panel: habla con servicio-admin, no con Supabase
 ├── local/               # el espejo: IndexedDB, sincronización y fotos
 ├── placement.ts         # colocación de cada prenda en el lienzo
 ├── silhouette.ts        # maniquí de referencia a partir de las medidas
@@ -158,6 +161,7 @@ supabase/
 ├── migrations/          # el esquema, las políticas y el almacén
 ├── schema.prisma        # solo para generar el SQL; la app no usa Prisma
 └── pruebas/probar.sh    # levanta un PostgreSQL desechable y prueba las políticas
+servicio-admin/          # el detrás del panel: la única pieza con la clave de servicio
 scripts/                 # carga de datos, migración, iconos y service worker
 migracion/               # lo que quedó de la versión con servidor (ver su LEEME)
 ```
@@ -605,6 +609,77 @@ el alta no devuelve sesión, intenta entrar acto seguido, y solo si el servidor
 contesta «email not confirmed» enseña la pantalla de «revisa tu correo». Así, el
 día que alguien cambie ese ajuste, la app lo cuenta en vez de quedarse muda.
 
+## Panel de superadministración
+
+Administrar Escaparate —ver quién se ha registrado, cambiarle el correo a
+alguien, restablecerle la contraseña, mirar su armario, repasar las imágenes
+subidas— choca con una pared: **todo eso necesita la clave de servicio**, que se
+salta la seguridad por filas de la instancia entera y que, además, esta
+instancia la comparte con otra aplicación. Esa clave no puede estar en el
+navegador. Y la app no tiene servidor donde esconderla.
+
+De ahí la forma que tiene esto:
+
+```
+Navegador · app estática
+   │  Authorization: Bearer <la sesión del propio administrador>
+   ▼
+servicio-admin · proceso aparte, dominio propio
+   │  verifica la sesión contra GoTrue y el correo contra su lista blanca
+   │  SUPABASE_SERVICE_ROLE_KEY  ← vive solo aquí
+   ▼
+GoTrue (admin) · PostgREST · Storage (URL firmadas)
+```
+
+El servicio ([servicio-admin/](servicio-admin/LEEME.md)) **no es un proxy**:
+publica nueve operaciones concretas y ninguna acepta SQL, nombres de tabla ni
+rutas libres. No tiene dependencias —son tres ficheros de JavaScript y `fetch`—
+porque es la pieza que guarda la llave, y cuanto menos haya que vigilar, mejor.
+
+Del lado de la app, tres detalles que no son casualidad:
+
+- **El panel vive en `/admin/`, fuera de `/dashboard/`.** Ahí dentro está el
+  espejo local, y los datos de otras personas no pueden acabar guardados en el
+  dispositivo de quien administra. Las fotos ajenas llegan como URL firmadas de
+  diez minutos, y [Foto](components/ui/Foto.tsx) pinta una dirección completa
+  tal cual, sin pasar por IndexedDB.
+- **Quién administra lo decide el servicio**, no la app: la entrada en el perfil
+  solo aparece si `GET /admin/yo` contesta que sí, y en el JavaScript que
+  descarga el navegador no hay ninguna lista de correos que leer.
+- **Sin `NEXT_PUBLIC_ADMIN_API`, el panel no existe.** Las pantallas se compilan
+  igual, pero avisan de que no hay servicio configurado y no enseñan nada.
+
+Lo que el panel puede hacer: consultar usuarios, prendas, looks y fotos; cambiar
+correos; restablecer contraseñas —con una temporal que se enseña **una sola
+vez**, o mandando el correo de recuperación—; suspender cuentas 24 h, 7 días o
+30 días; y borrar imágenes huérfanas. Lo que no puede: borrar cuentas ni tocar
+el armario de nadie.
+
+Dos honestidades que la propia interfaz dice en voz alta: **suspender no corta
+la sesión ya abierta** —el testigo vigente dura como mucho una hora—, y una
+imagen subida hace menos de un día no se ofrece para borrar aunque parezca
+huérfana, porque puede ser una prenda a medio catalogar.
+
+Cada operación que cambia algo deja una fila en `app_escaparate.admin_auditoria`
+([0005_auditoria.sql](supabase/migrations/0005_auditoria.sql)): quién, qué, a
+quién, cuándo y desde qué IP. Esa tabla no tiene políticas ni permisos para
+`authenticated`: para la app no existe. Nunca se escriben ahí contraseñas.
+
+Los pasos de Coolify están en [servicio-admin/LEEME.md](servicio-admin/LEEME.md).
+
+## Recuperar la contraseña
+
+`/recuperar/` hace las dos mitades: quien llega por su pie pide el enlace, y
+quien llega **desde el enlace** —que trae un testigo de recuperación en la
+dirección— elige contraseña nueva y entra. Vive fuera del grupo de pantallas de
+acceso a propósito: aquel marco manda al armario a quien tenga sesión, y quien
+viene del enlace la tiene, así que ahí dentro no llegaría a verse nunca.
+
+Para que el enlace vuelva a la app, su dirección tiene que estar en
+`GOTRUE_URI_ALLOW_LIST` en el recurso de Supabase, y el SMTP tiene que estar
+configurado. Es la misma pieza que usa el panel cuando elige mandar el correo en
+vez de poner una contraseña temporal.
+
 ## Compartir
 
 Dos botones, y detrás tres caminos distintos según dónde corra la app
@@ -649,6 +724,8 @@ cuando el navegador del móvil esconde o enseña su barra de direcciones.
 | `node --env-file=.env.local scripts/seed-supabase.mjs` | armario de ejemplo (14 prendas, 4 etiquetas, 2 looks) |
 | `node --env-file=.env.local scripts/migrar-a-supabase.mjs --correo … --seco` | sube el armario de la versión con servidor |
 | `node --env-file=.env.local scripts/aplicar-migraciones.mjs --ensayo` | ensaya el SQL contra tu base y lo deshace |
+| `node --env-file=.env.local scripts/aplicar-migraciones.mjs --solo 0005_auditoria.sql --de-verdad` | aplica una sola migración, para las bases ya migradas |
+| `cd servicio-admin && npm run dev` | el servicio del panel, en local, contra tu `.env.local` |
 | `./supabase/pruebas/probar.sh` | levanta un PostgreSQL desechable y comprueba las políticas |
 | `node scripts/generar-iconos.mjs` | rasteriza los iconos a PNG |
 | `npx cap sync android` | mete la última compilación en el proyecto de Android |

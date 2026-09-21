@@ -19,15 +19,19 @@ export default function LoginPage() {
           router.replace("/dashboard");
         }}
         pie={
-          <p className="text-center text-sm text-ink-muted">
-            ¿Aún no tienes armario?{" "}
-            <Link
-              href="/register"
-              className="text-accent-ink underline underline-offset-4"
-            >
-              Crea tu cuenta
-            </Link>
-          </p>
+          <div className="flex flex-col gap-2">
+            <p className="text-center text-sm text-ink-muted">
+              ¿Aún no tienes armario?{" "}
+              <Link href="/register" className="text-accent-ink underline underline-offset-4">
+                Crea tu cuenta
+              </Link>
+            </p>
+            <p className="text-center text-sm text-ink-muted">
+              <Link href="/recuperar" className="text-accent-ink underline underline-offset-4">
+                He olvidado mi contraseña
+              </Link>
+            </p>
+          </div>
         }
       />
     </>
