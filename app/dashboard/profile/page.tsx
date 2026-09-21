@@ -1,13 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { Header } from "@/components/layout/Header";
 import { Titulo } from "@/components/Titulo";
 import { AccountCard } from "@/components/profile/AccountCard";
 import { BodyPhoto } from "@/components/profile/BodyPhoto";
 import { MeasuresSection } from "@/components/profile/MeasuresSection";
 import { CerrarSesion } from "@/components/profile/CerrarSesion";
+import { BorrarCuenta } from "@/components/profile/BorrarCuenta";
+import { Credenciales } from "@/components/profile/Credenciales";
 import { EntradaPanel } from "@/components/profile/EntradaPanel";
 import { BloqueApoyo } from "@/components/profile/BloqueApoyo";
+import { DescargarApp } from "@/components/profile/DescargarApp";
 import { Espacio } from "@/components/profile/Espacio";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Aparece, ApareceSeccion } from "@/components/ui/Aparece";
@@ -84,9 +88,25 @@ export default function ProfilePage() {
           <Espacio />
         </ApareceSeccion>
 
+        {/* Solo en la web y solo si está encendido desde el panel. */}
+        <DescargarApp />
+
         <ApareceSeccion index={6} className="px-5">
           <h2 className="mb-2 text-xs uppercase tracking-[0.14em] text-ink-faint">Cuenta</h2>
-          <CerrarSesion />
+          <div className="flex flex-col gap-2">
+            <Credenciales />
+            <CerrarSesion />
+            <BorrarCuenta />
+          </div>
+          <p className="mt-3 text-center text-[11px] text-ink-faint">
+            <Link href="/privacidad" className="underline underline-offset-4">
+              Privacidad
+            </Link>
+            {" · "}
+            <Link href="/terminos" className="underline underline-offset-4">
+              Condiciones
+            </Link>
+          </p>
         </ApareceSeccion>
 
         {/* Solo aparece si el servicio dice que esta cuenta administra. */}

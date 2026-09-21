@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
+import { AtrasAndroid } from "@/components/AtrasAndroid";
 import { ServiceWorker } from "@/components/ServiceWorker";
 import { SesionProvider } from "@/components/SesionProvider";
 import { ThemeSync } from "@/components/ThemeSync";
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Se ejecuta antes de pintar: evita el destello de tema equivocado. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
         <SesionProvider>{children}</SesionProvider>
+        <AtrasAndroid />
         <ThemeSync />
         <ServiceWorker />
       </body>

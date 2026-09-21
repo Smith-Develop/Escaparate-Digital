@@ -98,6 +98,7 @@ Para comprobar que está vivo: `curl https://admin-escaparate.tu-dominio/salud`.
 | `DELETE /admin/foto` | Borra una huérfana, comprobando otra vez que no la usa nadie. |
 | `GET /admin/ajustes` | El bloque de apoyo y la configuración del correo (sin la contraseña). |
 | `PUT /admin/ajustes/apoyo` | Guarda el bloque de apoyo que se enseña en el perfil de la app. |
+| `PUT /admin/ajustes/apk` | Guarda la descarga para Android: versión, enlace (solo `https`) y nota. |
 | `PUT /admin/ajustes/correo` | Guarda el SMTP. La contraseña vacía conserva la que hubiera. |
 | `POST /admin/correo/prueba` | Manda un correo de prueba **al propio administrador**, nunca a otro. |
 

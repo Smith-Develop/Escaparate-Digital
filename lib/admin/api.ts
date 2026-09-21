@@ -96,6 +96,14 @@ export type Apoyo = {
   enlace: string;
 };
 
+/** La descarga directa del APK: aquí solo vive la dirección, no el fichero. */
+export type Apk = {
+  activo: boolean;
+  version: string;
+  enlace: string;
+  notas: string;
+};
+
 /** La configuración del correo, sin la contraseña: esa no sale del servicio. */
 export type CorreoAjustes = {
   host: string;
@@ -191,7 +199,7 @@ export const borrarFoto = (ruta: string) =>
 /* ── Ajustes ───────────────────────────────────────────────────────────── */
 
 export const pedirAjustes = () =>
-  llamar<{ apoyo: Apoyo; correo: CorreoAjustes }>("/admin/ajustes");
+  llamar<{ apoyo: Apoyo; apk: Apk; correo: CorreoAjustes }>("/admin/ajustes");
 
 export const guardarApoyo = (apoyo: Apoyo) =>
   llamar<{ apoyo: Apoyo }>("/admin/ajustes/apoyo", { metodo: "PUT", cuerpo: apoyo });
@@ -199,6 +207,9 @@ export const guardarApoyo = (apoyo: Apoyo) =>
 /** La contraseña solo viaja si se ha escrito una nueva; vacía, se conserva. */
 export const guardarCorreo = (correo: Partial<CorreoAjustes> & { contrasena?: string }) =>
   llamar<{ correo: CorreoAjustes }>("/admin/ajustes/correo", { metodo: "PUT", cuerpo: correo });
+
+export const guardarApk = (apk: Apk) =>
+  llamar<{ apk: Apk }>("/admin/ajustes/apk", { metodo: "PUT", cuerpo: apk });
 
 export const probarCorreo = () =>
   llamar<{ enviado: string }>("/admin/correo/prueba", { metodo: "POST", cuerpo: {} });
@@ -233,4 +244,42 @@ export async function pedirRecuperacion(correo: string): Promise<void> {
     const datos = (await respuesta.json().catch(() => ({}))) as { error?: string };
     throw new ErrorDeDatos(datos.error ?? "No se ha podido enviar el correo");
   }
+}
+
+/**
+ * Borrar la propia cuenta.
+ *
+ * No es una operación de administrador: la autoriza la sesión de quien la pide
+ * y el servicio saca de ella a quién borrar, así que nadie puede pedir el
+ * borrado de otro. Google Play lo exige para cualquier app con registro, y
+ * hace falta igualmente: si le pides a alguien fotos de su ropa, tiene que
+ * poder llevárselas de vuelta.
+ */
+export async function borrarMiCuenta(confirmacion: string): Promise<{ fotos: number }> {
+  if (!hayPanel) {
+    throw new ErrorDeDatos(
+      "Esta versión de la app no puede borrar cuentas. Escribe a quien la administra.",
+    );
+  }
+
+  const { data } = await supabase().auth.getSession();
+  const testigo = data.session?.access_token;
+  if (!testigo) throw new ErrorDeSesion();
+
+  let respuesta: Response;
+  try {
+    respuesta = await fetch(`${BASE}/cuenta/borrar`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${testigo}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ confirmacion }),
+      cache: "no-store",
+    });
+  } catch {
+    throw new ErrorDeRed("No se puede hablar con el servidor");
+  }
+
+  const datos = (await respuesta.json().catch(() => ({}))) as { fotos?: number; error?: string };
+  if (respuesta.status === 401) throw new ErrorDeSesion();
+  if (!respuesta.ok) throw new ErrorDeDatos(datos.error ?? "No se ha podido borrar la cuenta");
+  return { fotos: datos.fotos ?? 0 };
 }

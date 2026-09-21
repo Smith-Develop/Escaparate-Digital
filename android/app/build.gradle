@@ -1,5 +1,19 @@
 apply plugin: 'com.android.application'
 
+// ── Firma ──────────────────────────────────────────────────────────────────
+// Los datos del almacén de claves viven en `android/keystore.properties`, que
+// el `.gitignore` excluye: la clave con la que se firma la app no puede estar
+// en el repositorio. Si el fichero no existe —cualquiera que clone esto, o una
+// compilación de depuración— el proyecto sigue compilando; lo que no se puede
+// es sacar un paquete de publicación, y más vale que falle aquí que subir a
+// Play un `.aab` sin firmar.
+def propiedadesDeFirma = new Properties()
+def ficheroDeFirma = rootProject.file('keystore.properties')
+if (ficheroDeFirma.exists()) {
+    propiedadesDeFirma.load(new FileInputStream(ficheroDeFirma))
+}
+def hayFirma = propiedadesDeFirma.containsKey('storeFile')
+
 android {
     namespace = "app.escaparate.armario"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,8 +30,22 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (hayFirma) {
+            publicacion {
+                storeFile file(propiedadesDeFirma['storeFile'])
+                storePassword propiedadesDeFirma['storePassword']
+                keyAlias propiedadesDeFirma['keyAlias']
+                keyPassword propiedadesDeFirma['keyPassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (hayFirma) {
+                signingConfig signingConfigs.publicacion
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

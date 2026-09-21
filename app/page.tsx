@@ -72,6 +72,18 @@ export default function LandingPage() {
           >
             Iniciar sesión
           </Link>
+
+          {/* Tienen que poder leerse sin cuenta: la ficha de Google Play enlaza
+              aquí, y quien se plantea registrarse quiere mirarlo antes. */}
+          <p className="text-center text-[11px] text-ink-faint">
+            <Link href="/privacidad" className="underline underline-offset-4">
+              Privacidad
+            </Link>
+            {" · "}
+            <Link href="/terminos" className="underline underline-offset-4">
+              Condiciones
+            </Link>
+          </p>
         </Aparece>
       </div>
     </main>

@@ -2,6 +2,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { almacenDeSesion, vigilarSegundoPlano } from "@/lib/supabase/almacen";
+import { esAppNativa } from "@/lib/plataforma";
 
 /**
  * El cliente de Supabase, único para toda la app.
@@ -20,16 +21,6 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const schema = process.env.NEXT_PUBLIC_SUPABASE_SCHEMA ?? "public";
 
-/**
- * Dentro del APK la app no se abre por una dirección web, así que no hay ningún
- * fragmento de URL que mirar; en la web sí, y es como vuelve la sesión después
- * de confirmar el correo.
- */
-const dentroDeCapacitor = () =>
-  typeof window !== "undefined" &&
-  (window as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor
-    ?.isNativePlatform?.() === true;
-
 function crear() {
   if (!url || !anonKey) {
     // Mensaje explícito y en seco: sin estas dos variables no hay nada que
@@ -45,7 +36,10 @@ function crear() {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: !dentroDeCapacitor(),
+      // Dentro del APK la app no se abre por una dirección web, así que no hay
+      // ningún fragmento de URL que mirar; en la web sí, y es como vuelve la
+      // sesión después de pulsar el enlace de recuperar la contraseña.
+      detectSessionInUrl: !esAppNativa(),
       storage: almacenDeSesion(),
     },
   });

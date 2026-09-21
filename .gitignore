@@ -49,3 +49,11 @@ next-env.d.ts
 /prisma/dev.db-journal
 /public/uploads/*
 !/public/uploads/.gitkeep
+
+# Firma de Android. La clave con la que se firma la app NO entra en el
+# repositorio: quien la tenga puede publicar actualizaciones en tu nombre, y
+# perderla significa no poder actualizar la app nunca más.
+*.jks
+*.keystore
+android/keystore.properties
+!android/keystore.properties.ejemplo

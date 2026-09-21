@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion, useDragControls } from "framer-motion";
 import { useEffect } from "react";
+import { registrarCierre } from "@/lib/atras";
 
 type Props = {
   open: boolean;
@@ -21,7 +22,12 @@ export function Sheet({ open, onClose, title, children }: Props) {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    // Y lo mismo para el botón «atrás» de Android, que es el Escape de allí.
+    const quitar = registrarCierre(onClose);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      quitar();
+    };
   }, [open, onClose]);
 
   return (

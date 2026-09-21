@@ -22,13 +22,23 @@ import {
   dentroDelLimite,
   dentroDelLimiteDeCorreo,
   ErrorHttp,
+  quienLlama,
 } from "./sesion.mjs";
-import { correoSinSecreto, guardarApoyo, guardarCorreo, leerApoyo, leerCorreo } from "./ajustes.mjs";
+import {
+  correoSinSecreto,
+  guardarApk,
+  guardarApoyo,
+  guardarCorreo,
+  leerApk,
+  leerApoyo,
+  leerCorreo,
+} from "./ajustes.mjs";
 import { correoDePrueba } from "./correo.mjs";
 import {
   auditar,
   biblioteca,
   borrarFoto,
+  borrarLaCuentaDe,
   cambiarCorreo,
   contrasenaTemporal,
   enviarRecuperacion,
@@ -178,6 +188,7 @@ const rutas = {
 
   "GET /admin/ajustes": async () => ({
     apoyo: await leerApoyo(),
+    apk: await leerApk(),
     correo: correoSinSecreto(await leerCorreo({ frescos: true })),
   }),
 
@@ -191,6 +202,18 @@ const rutas = {
       ip,
     });
     return { apoyo };
+  },
+
+  "PUT /admin/ajustes/apk": async ({ cuerpo, quien, ip }) => {
+    const apk = await guardarApk(cuerpo);
+    await auditar({
+      actor: quien.id,
+      actorCorreo: quien.correo,
+      accion: "ajustes-apk",
+      detalle: { activo: apk.activo, version: apk.version, enlace: apk.enlace },
+      ip,
+    });
+    return { apk };
   },
 
   "PUT /admin/ajustes/correo": async ({ cuerpo, quien, ip }) => {
@@ -257,6 +280,37 @@ const publicas = {
   },
 };
 
+/**
+ * Lo que cualquier usuario puede hacer **sobre su propia cuenta**.
+ *
+ * Pide sesión válida, pero no estar en la lista de administradores: el dueño de
+ * una cuenta manda sobre ella. Y solo sobre ella: el identificador sale del
+ * testigo verificado, nunca del cuerpo de la petición, así que no hay forma de
+ * pedir el borrado de la cuenta de otro.
+ */
+const propias = {
+  "POST /cuenta/borrar": async ({ cuerpo, peticion, ip }) => {
+    const yo = await quienLlama(peticion, ip);
+    const { correo, fotos } = await borrarLaCuentaDe({
+      id: yo.id,
+      correo: yo.correo,
+      confirmacion: cuerpo.confirmacion,
+    });
+    // Queda el rastro aunque la cuenta ya no exista: es la prueba de que se
+    // borró, y de que la borró su dueño y no el administrador.
+    await auditar({
+      actor: yo.id,
+      actorCorreo: correo,
+      accion: "cuenta-borrada-por-su-dueño",
+      objetivo: yo.id,
+      objetivoCorreo: correo,
+      detalle: { fotos },
+      ip,
+    });
+    return { borrada: true, fotos };
+  },
+};
+
 /* ── El servidor ───────────────────────────────────────────────────────── */
 
 const servidor = createServer(async (peticion, respuesta) => {
@@ -284,6 +338,22 @@ const servidor = createServer(async (peticion, respuesta) => {
   }
 
   const clave = `${peticion.method} ${pathname.replace(/\/$/, "")}`;
+
+  const propia = propias[clave];
+  if (propia) {
+    try {
+      contestar(
+        respuesta,
+        200,
+        await propia({ cuerpo: await cuerpoJson(peticion), peticion, ip }),
+      );
+    } catch (error) {
+      const codigo = error instanceof ErrorHttp ? error.codigo : 500;
+      if (codigo >= 500) console.error(`[${clave}] ${error.stack ?? error.message}`);
+      contestar(respuesta, codigo, { error: codigo >= 500 ? "Algo ha fallado" : error.message });
+    }
+    return;
+  }
 
   const publica = publicas[clave];
   if (publica) {

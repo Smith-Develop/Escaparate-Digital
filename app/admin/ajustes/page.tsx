@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Field";
 import { Cargando, Fallo, useCarga } from "@/components/admin/Estado";
 import {
+  guardarApk,
   guardarApoyo,
   guardarCorreo,
   pedirAjustes,
   probarCorreo,
+  type Apk,
   type Apoyo,
   type CorreoAjustes,
 } from "@/lib/admin/api";
@@ -36,6 +38,7 @@ export default function AjustesPage() {
       <Titulo>Ajustes · Administración</Titulo>
       <div className="flex flex-col gap-4 pt-5">
         <TarjetaApoyo inicial={datos.apoyo} />
+        <TarjetaApk inicial={datos.apk} />
         <TarjetaCorreo inicial={datos.correo} />
       </div>
     </>
@@ -182,6 +185,99 @@ function TarjetaApoyo({ inicial }: { inicial: Apoyo }) {
   );
 }
 
+/* ── Descarga del APK ──────────────────────────────────────────────────── */
+
+function TarjetaApk({ inicial }: { inicial: Apk }) {
+  const [apk, setApk] = useState(inicial);
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [hecho, setHecho] = useState(false);
+
+  const campo = <K extends keyof Apk>(clave: K, valor: Apk[K]) => {
+    setApk((a) => ({ ...a, [clave]: valor }));
+    setHecho(false);
+  };
+
+  async function guardar() {
+    setGuardando(true);
+    setError(null);
+    try {
+      const { apk: guardado } = await guardarApk(apk);
+      setApk(guardado);
+      setHecho(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Algo ha fallado");
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  return (
+    <Tarjeta
+      index={1}
+      titulo="Descarga para Android"
+      explicacion="Un botón en el perfil para bajarse la app en Android. El fichero se aloja donde tú quieras —una publicación de GitHub, el propio servidor— y aquí solo va el enlace, así que publicar una versión nueva es pegarlo aquí. Dentro de la app no se enseña: quien la está usando ya la tiene."
+    >
+      <label className="flex items-center justify-between gap-3">
+        <span className="text-sm">Ofrecer la descarga</span>
+        <input
+          type="checkbox"
+          checked={apk.activo}
+          onChange={(e) => campo("activo", e.target.checked)}
+          className="edge relative h-6 w-11 shrink-0 cursor-pointer appearance-none rounded-full bg-surface-2
+                     transition-colors checked:bg-accent
+                     before:absolute before:left-0.5 before:top-0.5 before:size-5 before:rounded-full
+                     before:bg-ink before:transition-transform checked:before:translate-x-5
+                     checked:before:bg-on-accent"
+        />
+      </label>
+
+      <div className="grid gap-4 sm:grid-cols-[1fr_2fr]">
+        <label className="block">
+          <Label>Versión</Label>
+          <Input
+            value={apk.version}
+            onChange={(e) => campo("version", e.target.value)}
+            maxLength={20}
+            placeholder="1.0"
+          />
+        </label>
+        <label className="block">
+          <Label>Enlace al fichero</Label>
+          <Input
+            value={apk.enlace}
+            onChange={(e) => campo("enlace", e.target.value)}
+            type="url"
+            inputMode="url"
+            placeholder="https://…/escaparate-1.0.apk"
+          />
+        </label>
+      </div>
+
+      <label className="block">
+        <Label>Nota (opcional)</Label>
+        <Input
+          value={apk.notas}
+          onChange={(e) => campo("notas", e.target.value)}
+          maxLength={200}
+          placeholder="Qué trae esta versión"
+        />
+      </label>
+
+      {error && <Aviso tono="mal">{error}</Aviso>}
+      {hecho && (
+        <Aviso tono="bien">
+          Guardado. {apk.activo ? "El botón ya sale en el perfil." : "Está apagado: no se ve."}
+        </Aviso>
+      )}
+
+      <Button full onClick={guardar} loading={guardando}>
+        Guardar la descarga
+      </Button>
+    </Tarjeta>
+  );
+}
+
 /* ── Correo ────────────────────────────────────────────────────────────── */
 
 function TarjetaCorreo({ inicial }: { inicial: CorreoAjustes }) {
@@ -229,7 +325,7 @@ function TarjetaCorreo({ inicial }: { inicial: CorreoAjustes }) {
 
   return (
     <Tarjeta
-      index={1}
+      index={2}
       titulo="Correo"
       explicacion="Por aquí salen los correos de «he olvidado mi contraseña» y los que mandas tú desde la ficha de un usuario. Cambiar de proveedor es cambiar estos campos: no hay que tocar Coolify ni redesplegar nada."
     >

@@ -124,6 +124,37 @@ export function dentroDelLimite(ip) {
 const esperar = (ms) => new Promise((listo) => setTimeout(listo, ms));
 
 /**
+ * Quién hay detrás del testigo, sin mirar si administra.
+ *
+ * Lo usa lo que un usuario hace **sobre su propia cuenta**, como borrarla. La
+ * comprobación es la misma —se pregunta a GoTrue, no se descifra nada aquí—,
+ * lo que cambia es que no hay lista blanca: cualquiera con sesión válida puede
+ * actuar sobre lo suyo y solo sobre lo suyo.
+ */
+export async function quienLlama(peticion, ip) {
+  const cabecera = peticion.headers.authorization ?? "";
+  const testigo = cabecera.startsWith("Bearer ") ? cabecera.slice(7).trim() : "";
+  if (!testigo) {
+    apuntarFallo(ip);
+    throw new ErrorHttp(401, "Hace falta iniciar sesión");
+  }
+
+  await esperar(castigo(ip));
+
+  const respuesta = await fetch(`${url}/auth/v1/user`, {
+    headers: { apikey: anon, Authorization: `Bearer ${testigo}` },
+  });
+  if (!respuesta.ok) {
+    apuntarFallo(ip);
+    throw new ErrorHttp(401, "La sesión no vale o ha caducado");
+  }
+
+  olvidarFallos(ip);
+  const usuario = await respuesta.json();
+  return { id: usuario.id, correo: (usuario.email ?? "").toLowerCase(), metadatos: usuario.user_metadata ?? {} };
+}
+
+/**
  * Devuelve el administrador que hay detrás del testigo, o lanza.
  *
  * `soloMirar` lo usa `/admin/yo`: ahí que alguien no sea administrador es una

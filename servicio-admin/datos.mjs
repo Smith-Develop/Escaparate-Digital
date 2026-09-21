@@ -434,6 +434,41 @@ export async function borrarFoto(ruta) {
   await almacen(`/object/${BUCKET}`, { metodo: "DELETE", cuerpo: { prefixes: [ruta] } });
 }
 
+/* ── Borrar la propia cuenta ───────────────────────────────────────────── */
+
+/**
+ * El usuario se borra a sí mismo.
+ *
+ * Google Play lo exige para cualquier app con registro, y es lo justo: si le
+ * pides a alguien fotos de su ropa, tiene que poder llevárselas de vuelta.
+ *
+ * Se borra en este orden a propósito: primero las fotos y luego la cuenta. Al
+ * revés, si fallara el almacén nos quedaríamos con ficheros de un usuario que
+ * ya no existe y sin forma de saber de quién eran. Las filas de la base caen
+ * solas: todas las tablas cuelgan de `auth.users` con `on delete cascade`.
+ *
+ * Quien llama es el propio dueño —lo ha comprobado `quienLlama`— y se le pide
+ * además escribir su correo, porque esto no tiene vuelta atrás.
+ */
+export async function borrarLaCuentaDe({ id, correo, confirmacion }) {
+  if (String(confirmacion ?? "").trim().toLowerCase() !== correo) {
+    throw new ErrorHttp(400, "Escribe tu correo tal cual para confirmar");
+  }
+
+  const u = await usuarioDeGoTrue(id);
+
+  const ficheros = await listar(id);
+  const rutas = (ficheros ?? []).map((f) => `${id}/${f.name}`);
+  if (rutas.length > 0) {
+    await almacen(`/object/${BUCKET}`, { metodo: "DELETE", cuerpo: { prefixes: rutas } });
+  }
+
+  const r = await gotrue(`/admin/users/${id}`, { method: "DELETE" });
+  if (!r.ok) throw new ErrorHttp(502, `No se pudo borrar la cuenta (HTTP ${r.status})`);
+
+  return { correo: u.email ?? correo, fotos: rutas.length };
+}
+
 /* ── Auditoría ─────────────────────────────────────────────────────────── */
 
 /**

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ApareceSeccion } from "@/components/ui/Aparece";
 import { supabase } from "@/lib/supabase/cliente";
+import { esAppNativa } from "@/lib/plataforma";
 
 type Apoyo = { activo: boolean; titulo: string; texto: string; boton: string; enlace: string };
 
@@ -16,11 +17,17 @@ type Apoyo = { activo: boolean; titulo: string; texto: string; boton: string; en
  *
  * Si está apagado, si no hay enlace o si no hay red, no se pinta nada. Es un
  * añadido, no una pieza de la app: nunca debe estorbar ni dejar un hueco.
+ *
+ * **Dentro del APK no aparece nunca.** La política de pagos de Google mira con
+ * lupa los enlaces de pago que salen de una app, y una donación no vale la pena
+ * como motivo de rechazo: en Android se calla, y en la web se enseña.
  */
 export function BloqueApoyo() {
   const [apoyo, setApoyo] = useState<Apoyo | null>(null);
 
   useEffect(() => {
+    if (esAppNativa()) return;
+
     let vigente = true;
     void supabase()
       .from("ajustes")

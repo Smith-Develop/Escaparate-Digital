@@ -22,6 +22,21 @@ const APOYO = {
   enlace: "",
 };
 
+/**
+ * La descarga directa del APK.
+ *
+ * El fichero no se guarda aquí: se aloja donde quieras —una publicación de
+ * GitHub, el propio servidor, el almacén— y aquí vive solo la dirección. Así,
+ * publicar una versión nueva es pegar un enlace en el panel y no volver a
+ * compilar la web.
+ */
+const APK = {
+  activo: false,
+  version: "",
+  enlace: "",
+  notas: "",
+};
+
 const CORREO = {
   host: "",
   puerto: 587,
@@ -48,6 +63,7 @@ async function guardar(tabla, clave, valor) {
 }
 
 export const leerApoyo = () => leer("ajustes", "apoyo", APOYO);
+export const leerApk = () => leer("ajustes", "apk", APK);
 
 /**
  * La configuración del correo.
@@ -105,6 +121,28 @@ export async function guardarApoyo(datos) {
     enlace,
   };
   await guardar("ajustes", "apoyo", valor);
+  return valor;
+}
+
+export async function guardarApk(datos) {
+  const enlace = texto(datos.enlace, 500, "Enlace");
+  if (enlace && !/^https:\/\//i.test(enlace)) {
+    // Solo https: un APK bajado por http lo puede cambiar cualquiera por el
+    // camino, y estamos pidiendo que lo instalen a mano.
+    throw new ErrorHttp(400, "El enlace tiene que empezar por https://");
+  }
+  const activo = Boolean(datos.activo);
+  if (activo && !enlace) {
+    throw new ErrorHttp(400, "Para ofrecer la descarga hace falta el enlace al fichero");
+  }
+
+  const valor = {
+    activo,
+    version: texto(datos.version, 20, "Versión"),
+    enlace,
+    notas: texto(datos.notas, 200, "Notas"),
+  };
+  await guardar("ajustes", "apk", valor);
   return valor;
 }
 

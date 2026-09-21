@@ -22,15 +22,27 @@ export default function RegisterPage() {
           return haySesion ? undefined : "confirmar-correo";
         }}
         pie={
-          <p className="text-center text-sm text-ink-muted">
-            ¿Ya tienes cuenta?{" "}
-            <Link
-              href="/login"
-              className="text-accent-ink underline underline-offset-4"
-            >
-              Entra aquí
-            </Link>
-          </p>
+          <div className="flex flex-col gap-2">
+            <p className="text-center text-sm text-ink-muted">
+              ¿Ya tienes cuenta?{" "}
+              <Link href="/login" className="text-accent-ink underline underline-offset-4">
+                Entra aquí
+              </Link>
+            </p>
+            {/* Consentimiento a la vista antes de crear la cuenta, no escondido
+                en un enlace del pie de otra página. */}
+            <p className="text-center text-[11px] leading-relaxed text-ink-faint">
+              Al crear tu armario aceptas las{" "}
+              <Link href="/terminos" className="underline underline-offset-4">
+                condiciones
+              </Link>{" "}
+              y la{" "}
+              <Link href="/privacidad" className="underline underline-offset-4">
+                política de privacidad
+              </Link>
+              .
+            </p>
+          </div>
         }
       />
     </>

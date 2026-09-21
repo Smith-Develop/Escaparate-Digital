@@ -136,6 +136,9 @@ ni se hace copia, porque solo sirve para rehacer el recorte, que ya necesita red
 app/
 ├── (auth)/              # entrar y registrarse contra Supabase Auth
 ├── recuperar/           # pedir el enlace y elegir contraseña nueva
+├── privacidad/          # aviso de privacidad (lo exige Google Play)
+├── terminos/            # condiciones de uso
+├── borrar-cuenta/       # cómo cerrar la cuenta, accesible sin instalar la app
 ├── dashboard/           # inicio, armario, estudio, looks, perfil, inversión
 ├── admin/               # panel: resumen, usuarios, biblioteca y ajustes
 └── manifest.ts          # manifiesto de la PWA
@@ -665,6 +668,13 @@ Hay cosas que cambian con el tiempo y no merecen un despliegue. Viven en la base
   PayPal, lo que se use ese mes— que aparecen al final del perfil de cada
   usuario. Es la alternativa a meter publicidad: sin SDK de anuncios, sin
   consentimientos y sin tocar la privacidad de nadie. Apagado, no se pinta nada.
+- **La descarga del APK.** Versión, enlace y una nota; sale como tarjeta en el
+  perfil ([DescargarApp.tsx](components/profile/DescargarApp.tsx)). El fichero
+  se aloja donde quieras —una publicación de GitHub, el propio servidor— y aquí
+  solo vive la dirección, así que publicar una versión nueva es pegar un enlace
+  en vez de recompilar la web. Solo se admite `https`: se está pidiendo que
+  instalen a mano un fichero, y por `http` lo puede cambiar cualquiera por el
+  camino.
 - **El correo.** Servidor, puerto, usuario, contraseña y remitente del SMTP por
   el que salen los correos de la app.
 
@@ -716,6 +726,78 @@ Dos detalles del camino, que costaron un rato de depuración:
 Si la app se compila sin `NEXT_PUBLIC_ADMIN_API`, la pantalla usa el camino de
 siempre y depende del SMTP de la instancia.
 
+## Publicar en Google Play
+
+La app se empaqueta con Capacitor y `./scripts/apk.sh --play` saca el `.aab`.
+Lo que hace falta alrededor, y por qué:
+
+- **Firma.** `android/app/build.gradle` lee `android/keystore.properties`, que
+  el `.gitignore` excluye: la clave con la que se firma la app no puede vivir en
+  el repositorio. Si ese fichero no existe, el script **se niega a compilar** en
+  vez de sacar un paquete sin firmar que Play rechazaría al subirlo. Hay una
+  plantilla en `android/keystore.properties.ejemplo` con el comando de `keytool`.
+  Conviene activar **Play App Signing**: así la clave de verdad la guarda Google
+  y la tuya es solo la de subida, que se puede reemplazar si se pierde.
+- **`versionCode`.** Play rechaza dos subidas con el mismo número y es un fallo
+  que se descubre tarde; por eso `--version 1.1` lo sube por ti.
+- **El panel no viaja en el APK.** Se compila sin `NEXT_PUBLIC_ADMIN_API` salvo
+  que se pase `--con-panel`: se administra desde la web, y dentro de la app son
+  pantallas que un revisor puede encontrarse sin contexto.
+- **El bloque de apoyo tampoco.** La política de pagos de Google mira con lupa
+  los enlaces de pago que salen de una app; en Android se calla y en la web se
+  enseña. Lo mismo con el botón de descargar el APK, que dentro de la app sería
+  ofrecerle a alguien lo que ya tiene instalado. Las dos cosas preguntan lo
+  mismo a [esAppNativa()](lib/plataforma.ts), que es también quien decide si la
+  sesión mira el fragmento de la dirección: una sola respuesta para toda la app,
+  en vez de la comprobación copiada en cuatro ficheros.
+- **Sin copia automática.** `allowBackup="false"` y
+  [reglas_de_copia.xml](android/app/src/main/res/xml/reglas_de_copia.xml): el
+  armario ya está en el servidor, así que la copia de Google no añadiría nada y
+  sí se llevaría a su nube la sesión abierta y las fotos guardadas en el móvil.
+- **Un solo permiso: `INTERNET`.** Las fotos se hacen con `<input capture>` y se
+  comparten desde el directorio de caché, así que no hace falta ni `CAMERA` ni
+  acceso a la galería. Eso evita de golpe el formulario de permisos sensibles,
+  que es donde más revisiones se atascan. **Conviene no perderlo**: cualquier
+  complemento que pida un permiso nuevo abre un trámite.
+- **El botón «atrás»** ([AtrasAndroid.tsx](components/AtrasAndroid.tsx)) cierra
+  primero lo que haya abierto encima —las hojas se apuntan en una pila,
+  [lib/atras.ts](lib/atras.ts)—, luego retrocede de pantalla, y solo desde la
+  primera sale de la app.
+- **La pantalla de arranque** se genera con el resto de iconos
+  (`node scripts/generar-iconos.mjs`): el logotipo suelto sobre el telón oscuro.
+  Las que traía la herramienta de Capacitor metían el icono con su fondo blanco
+  y se veía un recuadro al abrir.
+
+Falta, y no se puede acelerar: la cuenta de Play Console (25 $) y, si es
+personal y nueva, **doce probadores durante catorce días** en prueba cerrada
+antes de poder publicar en producción.
+
+## Cuenta: privacidad, credenciales y borrado
+
+Tres páginas se leen **sin sesión**, porque la ficha de Google Play enlaza a
+ellas y porque quien se plantea registrarse quiere mirarlas antes:
+[/privacidad/](app/privacidad/page.tsx), [/terminos/](app/terminos/page.tsx) y
+[/borrar-cuenta/](app/borrar-cuenta/page.tsx). Los datos que salen ahí —quién
+responde, a dónde escribir, dónde están los servidores— viven juntos en
+[lib/legal.ts](lib/legal.ts): es lo primero que hay que revisar antes de
+publicar.
+
+Desde **Perfil → Cuenta** se puede, sin pedirle nada a nadie:
+
+- **Cambiar la contraseña**, sin la anterior: estar dentro ya demuestra que la
+  cuenta es tuya.
+- **Cambiar el correo**, que no se aplica hasta pulsar el enlace que llega a la
+  dirección nueva. Es deliberado: si se aplicara al instante, un despiste
+  tecleando dejaría la cuenta inaccesible.
+- **Borrar la cuenta**, escribiendo el correo para confirmar. Google Play lo
+  exige para cualquier app con registro, y es lo justo: si le pides a alguien
+  fotos de su ropa, tiene que poder retirarlas. Lo hace el servicio de
+  administración con una ruta que **saca a quién borrar del testigo**, nunca del
+  cuerpo de la petición, así que no hay forma de pedir el borrado de otro. Se
+  borran las fotos primero y la cuenta después —al revés quedarían ficheros
+  huérfanos sin saber de quién eran—, las tablas caen por `on delete cascade`, y
+  el espejo del dispositivo se limpia al terminar.
+
 ## Compartir
 
 Dos botones, y detrás tres caminos distintos según dónde corra la app
@@ -763,6 +845,7 @@ cuando el navegador del móvil esconde o enseña su barra de direcciones.
 | `node --env-file=.env.local scripts/aplicar-migraciones.mjs --solo 0005_auditoria.sql --de-verdad` | aplica una sola migración, para las bases ya migradas |
 | `cd servicio-admin && npm run dev` | el servicio del panel, en local, contra tu `.env.local` |
 | `./supabase/pruebas/probar.sh` | levanta un PostgreSQL desechable y comprueba las políticas |
-| `node scripts/generar-iconos.mjs` | rasteriza los iconos a PNG |
+| `node scripts/generar-iconos.mjs` | rasteriza los iconos y las pantallas de arranque |
+| `./scripts/apk.sh --play --version 1.1` | `.aab` firmado para Play, subiendo la versión |
 | `npx cap sync android` | mete la última compilación en el proyecto de Android |
 | `npm run lint` | ESLint |
