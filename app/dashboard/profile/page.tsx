@@ -7,6 +7,7 @@ import { BodyPhoto } from "@/components/profile/BodyPhoto";
 import { MeasuresSection } from "@/components/profile/MeasuresSection";
 import { CerrarSesion } from "@/components/profile/CerrarSesion";
 import { EntradaPanel } from "@/components/profile/EntradaPanel";
+import { BloqueApoyo } from "@/components/profile/BloqueApoyo";
 import { Espacio } from "@/components/profile/Espacio";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Aparece, ApareceSeccion } from "@/components/ui/Aparece";
@@ -90,6 +91,9 @@ export default function ProfilePage() {
 
         {/* Solo aparece si el servicio dice que esta cuenta administra. */}
         <EntradaPanel />
+
+        {/* Y esto, solo si está encendido desde el panel. */}
+        <BloqueApoyo />
       </div>
     </>
   );

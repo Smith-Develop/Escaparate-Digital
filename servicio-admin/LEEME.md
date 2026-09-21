@@ -14,6 +14,14 @@ nueve operaciones cerradas.
 
 No es un proxy: ninguna ruta acepta SQL, ni nombres de tabla, ni rutas libres.
 
+También es **quien manda los correos** de Escaparate. El SMTP no está en las
+variables de entorno sino en la base de datos, editable desde el panel: cambiar
+de proveedor de correo no debería obligar a redesplegar una instancia de
+Supabase compartida con otra aplicación. Y de paso arregla un fallo de la
+instalación: GoTrue escribe los enlaces de sus correos con la dirección interna
+de Docker (`http://supabase-kong:8000`), que no abre en ningún móvil; aquí el
+enlace se compone con el dominio público.
+
 ## Cómo decide quién entra
 
 1. Cada petición llega con la sesión de Supabase de quien usa el panel, la misma
@@ -39,7 +47,7 @@ Todas de **ejecución**. En Coolify, sin marcar «Build Variable».
 | `SUPABASE_SCHEMA` | `app_escaparate`. |
 | `ADMIN_CORREOS` | Correos que administran, separados por comas. |
 | `ORIGENES_PERMITIDOS` | Direcciones desde las que se acepta el panel, separadas por comas. Sin comodines. |
-| `SITIO_URL` | La dirección pública de la app, para que el correo de recuperación vuelva a `/recuperar/`. |
+| `SITIO_URL` | La dirección pública de la app: es a donde vuelve el enlace del correo (`/recuperar/`). |
 | `PORT` | 3000 por defecto, que es lo que espera Coolify. |
 | `HOST` | En el contenedor, `0.0.0.0` (ya lo pone `NODE_ENV=production`). En tu máquina escucha solo en `127.0.0.1`: un proceso con la clave de servicio no debe quedar a la escucha de toda la wifi. |
 
@@ -88,6 +96,36 @@ Para comprobar que está vivo: `curl https://admin-escaparate.tu-dominio/salud`.
 | `POST /admin/suspension` | 24 h, 7 días, 30 días o levantar. |
 | `GET /admin/biblioteca` | Todas las imágenes del almacén, con dueño y si son huérfanas. |
 | `DELETE /admin/foto` | Borra una huérfana, comprobando otra vez que no la usa nadie. |
+| `GET /admin/ajustes` | El bloque de apoyo y la configuración del correo (sin la contraseña). |
+| `PUT /admin/ajustes/apoyo` | Guarda el bloque de apoyo que se enseña en el perfil de la app. |
+| `PUT /admin/ajustes/correo` | Guarda el SMTP. La contraseña vacía conserva la que hubiera. |
+| `POST /admin/correo/prueba` | Manda un correo de prueba **al propio administrador**, nunca a otro. |
+
+## La única ruta sin sesión
+
+`POST /publico/recuperar` recibe un correo y manda el enlace para cambiar la
+contraseña. Tiene que ser pública —la usa justamente quien no puede entrar—, así
+que lleva tres cosas encima:
+
+- Límite estrecho por IP: cinco peticiones cada diez minutos, aparte del límite
+  general del servicio.
+- **La misma respuesta exista o no la cuenta.** Si contestara distinto, sería
+  una forma cómoda de averiguar quién está registrado.
+- Solo mira las cuentas de Escaparate, no las de la otra aplicación de la
+  instancia.
+
+## El correo
+
+Las credenciales viven en `app_escaparate.ajustes_privados`, una tabla sin
+políticas ni permisos para `authenticated`: solo la lee este servicio. La
+contraseña **nunca vuelve a salir**: el panel sabe si hay una guardada, no cuál
+es. Al guardar, si el campo llega vacío se conserva la anterior; si se borra el
+usuario, la contraseña se borra con él, porque sin usuario no hay autenticación
+y sería un secreto ahí tirado sin uso.
+
+`nodemailer` es la única dependencia del proyecto, y no tiene dependencias
+propias. Hablar SMTP a mano —saludo, STARTTLS, autenticación, MIME,
+codificaciones— son doscientas líneas delicadas para un problema ya resuelto.
 
 ## Lo que este servicio NO hace
 

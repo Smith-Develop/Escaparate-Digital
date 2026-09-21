@@ -84,6 +84,7 @@ const SECCIONES = [
   { href: "/admin", label: "Resumen" },
   { href: "/admin/usuarios", label: "Usuarios" },
   { href: "/admin/biblioteca", label: "Biblioteca" },
+  { href: "/admin/ajustes", label: "Ajustes" },
 ];
 
 function Barra() {

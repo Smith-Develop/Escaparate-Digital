@@ -88,6 +88,26 @@ setInterval(
 const ventanas = new Map();
 const POR_MINUTO = 90;
 
+/**
+ * Un límite aparte, mucho más estrecho, para lo que manda correos.
+ *
+ * La ruta de «he olvidado mi contraseña» es pública por necesidad, y sin esto
+ * sería una forma cómoda de inundar el buzón de otra persona o de quemar la
+ * cuota del proveedor de correo en diez minutos.
+ */
+const correos = new Map();
+
+export function dentroDelLimiteDeCorreo(ip) {
+  const ahora = Date.now();
+  const ventana = correos.get(ip);
+  if (!ventana || ahora - ventana.desde > 10 * 60_000) {
+    correos.set(ip, { desde: ahora, cuenta: 1 });
+    return true;
+  }
+  ventana.cuenta += 1;
+  return ventana.cuenta <= 5;
+}
+
 export function dentroDelLimite(ip) {
   const ahora = Date.now();
   const ventana = ventanas.get(ip);

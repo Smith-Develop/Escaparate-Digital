@@ -87,6 +87,27 @@ export type FotoDelAlmacen = {
   url: string | null;
 };
 
+/** El bloque de «Apoyar Escaparate» que se enseña en Perfil. */
+export type Apoyo = {
+  activo: boolean;
+  titulo: string;
+  texto: string;
+  boton: string;
+  enlace: string;
+};
+
+/** La configuración del correo, sin la contraseña: esa no sale del servicio. */
+export type CorreoAjustes = {
+  host: string;
+  puerto: number;
+  seguro: boolean;
+  usuario: string;
+  remitente: string;
+  nombre: string;
+  hayContrasena: boolean;
+  configurado: boolean;
+};
+
 export type Biblioteca = {
   fotos: FotoDelAlmacen[];
   usuarios: { id: string; nombre: string }[];
@@ -166,3 +187,50 @@ export const pedirBiblioteca = ({ usuario = "", soloHuerfanas = false } = {}) =>
 
 export const borrarFoto = (ruta: string) =>
   llamar<{ borrada: string }>("/admin/foto", { metodo: "DELETE", cuerpo: { ruta } });
+
+/* ── Ajustes ───────────────────────────────────────────────────────────── */
+
+export const pedirAjustes = () =>
+  llamar<{ apoyo: Apoyo; correo: CorreoAjustes }>("/admin/ajustes");
+
+export const guardarApoyo = (apoyo: Apoyo) =>
+  llamar<{ apoyo: Apoyo }>("/admin/ajustes/apoyo", { metodo: "PUT", cuerpo: apoyo });
+
+/** La contraseña solo viaja si se ha escrito una nueva; vacía, se conserva. */
+export const guardarCorreo = (correo: Partial<CorreoAjustes> & { contrasena?: string }) =>
+  llamar<{ correo: CorreoAjustes }>("/admin/ajustes/correo", { metodo: "PUT", cuerpo: correo });
+
+export const probarCorreo = () =>
+  llamar<{ enviado: string }>("/admin/correo/prueba", { metodo: "POST", cuerpo: {} });
+
+/* ── Lo único sin sesión ───────────────────────────────────────────────── */
+
+/**
+ * «He olvidado mi contraseña», desde la pantalla de acceso.
+ *
+ * No lleva testigo —quien la usa es justamente quien no puede entrar— y
+ * contesta igual exista o no la cuenta, así que no sirve para averiguar quién
+ * está registrado. Quien manda el correo es el servicio, con el SMTP que haya
+ * puesto en el panel.
+ */
+export async function pedirRecuperacion(correo: string): Promise<void> {
+  if (!hayPanel) throw new ErrorDeDatos("No hay servicio de correo configurado");
+  let respuesta: Response;
+  try {
+    respuesta = await fetch(`${BASE}/publico/recuperar`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ correo }),
+      cache: "no-store",
+    });
+  } catch {
+    throw new ErrorDeRed("No se puede hablar con el servidor");
+  }
+  if (respuesta.status === 429) {
+    throw new ErrorDeDatos("Has pedido demasiados correos seguidos. Prueba dentro de un rato.");
+  }
+  if (!respuesta.ok) {
+    const datos = (await respuesta.json().catch(() => ({}))) as { error?: string };
+    throw new ErrorDeDatos(datos.error ?? "No se ha podido enviar el correo");
+  }
+}

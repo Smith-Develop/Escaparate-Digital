@@ -137,7 +137,7 @@ app/
 ├── (auth)/              # entrar y registrarse contra Supabase Auth
 ├── recuperar/           # pedir el enlace y elegir contraseña nueva
 ├── dashboard/           # inicio, armario, estudio, looks, perfil, inversión
-├── admin/               # panel de superadministración (solo si está configurado)
+├── admin/               # panel: resumen, usuarios, biblioteca y ajustes
 └── manifest.ts          # manifiesto de la PWA
 components/
 ├── ui/                  # botón, chip, campos, hoja inferior, Foto
@@ -161,7 +161,7 @@ supabase/
 ├── migrations/          # el esquema, las políticas y el almacén
 ├── schema.prisma        # solo para generar el SQL; la app no usa Prisma
 └── pruebas/probar.sh    # levanta un PostgreSQL desechable y prueba las políticas
-servicio-admin/          # el detrás del panel: la única pieza con la clave de servicio
+servicio-admin/          # el detrás del panel: la clave de servicio y el correo
 scripts/                 # carga de datos, migración, iconos y service worker
 migracion/               # lo que quedó de la versión con servidor (ver su LEEME)
 ```
@@ -652,8 +652,28 @@ Del lado de la app, tres detalles que no son casualidad:
 Lo que el panel puede hacer: consultar usuarios, prendas, looks y fotos; cambiar
 correos; restablecer contraseñas —con una temporal que se enseña **una sola
 vez**, o mandando el correo de recuperación—; suspender cuentas 24 h, 7 días o
-30 días; y borrar imágenes huérfanas. Lo que no puede: borrar cuentas ni tocar
-el armario de nadie.
+30 días; borrar imágenes huérfanas; y cambiar dos ajustes en caliente. Lo que no
+puede: borrar cuentas ni tocar el armario de nadie.
+
+### Ajustes, sin redesplegar
+
+Hay cosas que cambian con el tiempo y no merecen un despliegue. Viven en la base
+([0006_ajustes.sql](supabase/migrations/0006_ajustes.sql)) y se editan en
+**Administración → Ajustes**:
+
+- **El bloque de apoyo.** Un título, un texto, un botón y un enlace —Ko-fi,
+  PayPal, lo que se use ese mes— que aparecen al final del perfil de cada
+  usuario. Es la alternativa a meter publicidad: sin SDK de anuncios, sin
+  consentimientos y sin tocar la privacidad de nadie. Apagado, no se pinta nada.
+- **El correo.** Servidor, puerto, usuario, contraseña y remitente del SMTP por
+  el que salen los correos de la app.
+
+Son **dos tablas y no una**, y la diferencia importa: `ajustes` lo lee la app con
+la clave pública —así que ahí solo puede haber cosas que ya se van a enseñar en
+pantalla— y `ajustes_privados` no tiene políticas ni permisos para
+`authenticated`, de modo que las credenciales del correo solo las ve el
+servicio. La contraseña, además, no vuelve a salir nunca: el panel sabe si hay
+una guardada, no cuál es.
 
 Dos honestidades que la propia interfaz dice en voz alta: **suspender no corta
 la sesión ya abierta** —el testigo vigente dura como mucho una hora—, y una
@@ -675,10 +695,26 @@ dirección— elige contraseña nueva y entra. Vive fuera del grupo de pantallas
 acceso a propósito: aquel marco manda al armario a quien tenga sesión, y quien
 viene del enlace la tiene, así que ahí dentro no llegaría a verse nunca.
 
-Para que el enlace vuelva a la app, su dirección tiene que estar en
-`GOTRUE_URI_ALLOW_LIST` en el recurso de Supabase, y el SMTP tiene que estar
-configurado. Es la misma pieza que usa el panel cuando elige mandar el correo en
-vez de poner una contraseña temporal.
+**El correo no lo manda GoTrue, lo manda el servicio de administración.** No es
+capricho: el SMTP de GoTrue vive en las variables de Coolify, y esa instancia la
+comparten dos aplicaciones, así que cambiar de proveedor de correo obligaba a
+redesplegarla entera. Además, GoTrue escribe los enlaces con su dirección
+interna de Docker (`http://supabase-kong:8000`), que no abre en ningún móvil;
+componiéndolos nosotros salen con el dominio público. El testigo sigue siendo
+suyo —se pide con `admin/generate_link`—, lo que cambia es quién escribe la URL
+y quién pone el sello.
+
+Dos detalles del camino, que costaron un rato de depuración:
+
+- La pantalla **espera a que exista la sesión** antes de dejar guardar. El
+  testigo del enlace se canjea de forma asíncrona, y quien escribía rápido se
+  encontraba un «falta la sesión» que no significa nada para él.
+- Si la pantalla ya estaba abierta, supabase-js no canjea nada —el cliente se
+  creó antes de que llegara el testigo—, así que el canje se hace a mano con lo
+  que trae la dirección.
+
+Si la app se compila sin `NEXT_PUBLIC_ADMIN_API`, la pantalla usa el camino de
+siempre y depende del SMTP de la instancia.
 
 ## Compartir
 

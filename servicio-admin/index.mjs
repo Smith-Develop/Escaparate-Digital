@@ -20,8 +20,11 @@ import {
   administrador,
   comprobarConfiguracion,
   dentroDelLimite,
+  dentroDelLimiteDeCorreo,
   ErrorHttp,
 } from "./sesion.mjs";
+import { correoSinSecreto, guardarApoyo, guardarCorreo, leerApoyo, leerCorreo } from "./ajustes.mjs";
+import { correoDePrueba } from "./correo.mjs";
 import {
   auditar,
   biblioteca,
@@ -30,6 +33,7 @@ import {
   contrasenaTemporal,
   enviarRecuperacion,
   listarUsuarios,
+  recuperacionPedidaPor,
   resumen,
   suspender,
   SUSPENSIONES,
@@ -67,7 +71,7 @@ function cors(peticion, respuesta) {
     respuesta.setHeader("Access-Control-Allow-Origin", origen);
     respuesta.setHeader("Vary", "Origin");
     respuesta.setHeader("Access-Control-Allow-Headers", "authorization, content-type");
-    respuesta.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+    respuesta.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     respuesta.setHeader("Access-Control-Max-Age", "600");
   }
 }
@@ -172,6 +176,43 @@ const rutas = {
     return { suspendidoHasta: hasta };
   },
 
+  "GET /admin/ajustes": async () => ({
+    apoyo: await leerApoyo(),
+    correo: correoSinSecreto(await leerCorreo({ frescos: true })),
+  }),
+
+  "PUT /admin/ajustes/apoyo": async ({ cuerpo, quien, ip }) => {
+    const apoyo = await guardarApoyo(cuerpo);
+    await auditar({
+      actor: quien.id,
+      actorCorreo: quien.correo,
+      accion: "ajustes-apoyo",
+      detalle: { activo: apoyo.activo, enlace: apoyo.enlace },
+      ip,
+    });
+    return { apoyo };
+  },
+
+  "PUT /admin/ajustes/correo": async ({ cuerpo, quien, ip }) => {
+    const correo = await guardarCorreo(cuerpo);
+    // Queda constancia del servidor, nunca de la contraseña.
+    await auditar({
+      actor: quien.id,
+      actorCorreo: quien.correo,
+      accion: "ajustes-correo",
+      detalle: { host: correo.host, puerto: correo.puerto, remitente: correo.remitente },
+      ip,
+    });
+    return { correo };
+  },
+
+  "POST /admin/correo/prueba": async ({ quien }) => {
+    // Siempre al propio administrador: así esto no se puede usar para mandarle
+    // un correo a un tercero desde el panel.
+    await correoDePrueba(quien.correo, quien.correo);
+    return { enviado: quien.correo };
+  },
+
   "GET /admin/biblioteca": async ({ parametros }) =>
     await biblioteca({
       usuario: parametros.get("usuario") ?? "",
@@ -188,6 +229,31 @@ const rutas = {
       ip,
     });
     return { borrada: cuerpo.ruta };
+  },
+};
+
+/**
+ * Lo único que este servicio hace sin sesión.
+ *
+ * «He olvidado mi contraseña» tiene que funcionar justamente para quien no
+ * puede entrar, así que no hay testigo que valga. A cambio: límite estrecho por
+ * IP, y **la misma respuesta exista o no la cuenta**, que es lo que impide usar
+ * esto para averiguar quién está registrado.
+ */
+const publicas = {
+  "POST /publico/recuperar": async ({ cuerpo, ip }) => {
+    if (!dentroDelLimiteDeCorreo(ip)) {
+      throw new ErrorHttp(429, "Demasiadas peticiones seguidas. Prueba dentro de un rato.");
+    }
+    try {
+      await recuperacionPedidaPor(cuerpo.correo);
+    } catch (error) {
+      // Un fallo de envío sí se cuenta —hay que poder arreglarlo—, pero no se
+      // le dice al visitante nada que revele si esa cuenta existe.
+      if (error.codigo !== 400) console.error(`[recuperar] ${error.message}`);
+      if (error.codigo === 400) throw error;
+    }
+    return { listo: true };
   },
 };
 
@@ -218,6 +284,19 @@ const servidor = createServer(async (peticion, respuesta) => {
   }
 
   const clave = `${peticion.method} ${pathname.replace(/\/$/, "")}`;
+
+  const publica = publicas[clave];
+  if (publica) {
+    try {
+      contestar(respuesta, 200, await publica({ cuerpo: await cuerpoJson(peticion), ip }));
+    } catch (error) {
+      const codigo = error instanceof ErrorHttp ? error.codigo : 500;
+      if (codigo >= 500) console.error(`[${clave}] ${error.stack ?? error.message}`);
+      contestar(respuesta, codigo, { error: codigo >= 500 ? "Algo ha fallado" : error.message });
+    }
+    return;
+  }
+
   const manejador = rutas[clave];
   if (!manejador) {
     contestar(respuesta, 404, { error: "Aquí no hay nada" });

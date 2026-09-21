@@ -8,6 +8,7 @@ import { Adornos } from "@/components/ilustraciones/Adornos";
 import { Titulo } from "@/components/Titulo";
 import { Input, Label } from "@/components/ui/Field";
 import { APARECE } from "@/lib/animaciones";
+import { hayPanel, pedirRecuperacion } from "@/lib/admin/api";
 import { supabase } from "@/lib/supabase/cliente";
 
 /**
@@ -78,24 +79,37 @@ function PedirEnlace() {
   const [error, setError] = useState<string | null>(null);
   const [enviado, setEnviado] = useState(false);
 
+  /**
+   * Quien manda el correo es el servicio de administración, con el proveedor
+   * que haya puesto el panel; así cambiarlo no obliga a redesplegar Supabase.
+   * Si esta compilación no lo tiene configurado, se pide por el camino de
+   * siempre, que usa el SMTP de la instancia.
+   */
   async function pedir(e: React.FormEvent) {
     e.preventDefault();
     setEnviando(true);
     setError(null);
-    const { error: fallo } = await supabase().auth.resetPasswordForEmail(
-      correo.trim().toLowerCase(),
-      { redirectTo: `${window.location.origin}/recuperar/` },
-    );
-    setEnviando(false);
-    if (fallo) {
+    try {
+      if (hayPanel) {
+        await pedirRecuperacion(correo.trim().toLowerCase());
+      } else {
+        const { error: fallo } = await supabase().auth.resetPasswordForEmail(
+          correo.trim().toLowerCase(),
+          { redirectTo: `${window.location.origin}/recuperar/` },
+        );
+        if (fallo) throw new Error(fallo.message);
+      }
+      setEnviado(true);
+    } catch (fallo) {
+      const mensaje = fallo instanceof Error ? fallo.message : "";
       setError(
-        /rate|limit/i.test(fallo.message)
+        /rate|limit|demasiados/i.test(mensaje)
           ? "Has pedido demasiados correos seguidos. Espera un poco."
-          : "No se ha podido enviar el correo. Inténtalo más tarde.",
+          : mensaje || "No se ha podido enviar el correo. Inténtalo más tarde.",
       );
-      return;
+    } finally {
+      setEnviando(false);
     }
-    setEnviado(true);
   }
 
   if (enviado) {

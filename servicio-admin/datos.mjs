@@ -18,68 +18,11 @@
  */
 import { randomInt } from "node:crypto";
 import { ErrorHttp } from "./sesion.mjs";
+import { almacen, APP, BUCKET, gotrue, rest, SITIO, todas, url } from "./supabase.mjs";
+import { correoDeRecuperacion } from "./correo.mjs";
 
-const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
-const anon = process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const servicio = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const esquema =
-  process.env.SUPABASE_SCHEMA ?? process.env.NEXT_PUBLIC_SUPABASE_SCHEMA ?? "public";
-const SITIO = process.env.SITIO_URL ?? process.env.NEXT_PUBLIC_SITIO_URL ?? "";
-
-const BUCKET = "escaparate-fotos";
-/** Marca que deja el registro de Escaparate; la instancia es compartida. */
-const APP = "escaparate";
 /** Las URL firmadas viven lo que dura mirar una pantalla, no más. */
 const FIRMA_SEGUNDOS = 600;
-/** Tope de filas por consulta. Con más que esto, habría que paginar de verdad. */
-const TOPE = 5000;
-
-const claveDeServicio = () => ({
-  apikey: servicio,
-  Authorization: `Bearer ${servicio}`,
-  "Content-Type": "application/json",
-});
-
-/* ── Los tres caminos a Supabase ───────────────────────────────────────── */
-
-async function gotrue(ruta, opciones = {}) {
-  const r = await fetch(`${url}/auth/v1${ruta}`, {
-    ...opciones,
-    headers: { ...claveDeServicio(), ...opciones.headers },
-  });
-  return r;
-}
-
-/**
- * PostgREST. El esquema va en la cabecera, no en la URL: al vivir Escaparate en
- * `app_escaparate` y no en `public`, sin `Accept-Profile` las consultas irían a
- * las tablas de tu otra aplicación.
- */
-async function rest(recurso, { metodo = "GET", cuerpo, cabeceras = {} } = {}) {
-  const r = await fetch(`${url}/rest/v1/${recurso}`, {
-    method: metodo,
-    headers: {
-      ...claveDeServicio(),
-      ...(metodo === "GET" ? { "Accept-Profile": esquema } : { "Content-Profile": esquema }),
-      ...cabeceras,
-    },
-    ...(cuerpo ? { body: JSON.stringify(cuerpo) } : {}),
-  });
-  const texto = await r.text();
-  if (!r.ok) throw new ErrorHttp(502, `Base de datos: ${texto.slice(0, 200)}`);
-  return texto ? JSON.parse(texto) : null;
-}
-
-async function almacen(ruta, { metodo = "POST", cuerpo } = {}) {
-  const r = await fetch(`${url}/storage/v1${ruta}`, {
-    method: metodo,
-    headers: claveDeServicio(),
-    ...(cuerpo ? { body: JSON.stringify(cuerpo) } : {}),
-  });
-  const texto = await r.text();
-  if (!r.ok) throw new ErrorHttp(502, `Almacén: ${texto.slice(0, 200)}`);
-  return texto ? JSON.parse(texto) : null;
-}
 
 /* ── Usuarios ──────────────────────────────────────────────────────────── */
 
@@ -125,15 +68,15 @@ async function cuentasPorUsuario() {
     cuentas.set(uid, previo);
   };
 
-  const prendas = await rest(`Item?select=userId&limit=${TOPE}`);
+  const prendas = await todas("Item?select=userId");
   for (const { userId } of prendas) suma(userId, "prendas");
-  const looks = await rest(`Look?select=userId&limit=${TOPE}`);
+  const looks = await todas("Look?select=userId");
   for (const { userId } of looks) suma(userId, "looks");
   return cuentas;
 }
 
 async function perfilesPorId() {
-  const perfiles = await rest(`profiles?select=id,name,createdAt&limit=${TOPE}`);
+  const perfiles = await todas("profiles?select=id,name,createdAt");
   return new Map(perfiles.map((p) => [p.id, p]));
 }
 
@@ -203,9 +146,9 @@ export async function usuario(id) {
 
   const [perfiles, prendas, looks, avatares] = await Promise.all([
     rest(`profiles?select=id,name,createdAt&id=eq.${id}`),
-    rest(`Item?select=*&userId=eq.${id}&order=createdAt.desc&limit=${TOPE}`),
-    rest(
-      `Look?select=id,name,occasion,scheduledAt,createdAt,LookItem(itemId)&userId=eq.${id}&order=createdAt.desc&limit=${TOPE}`,
+    todas(`Item?select=*&userId=eq.${id}&order=createdAt.desc`),
+    todas(
+      `Look?select=id,name,occasion,scheduledAt,createdAt,LookItem(itemId)&userId=eq.${id}&order=createdAt.desc`,
     ),
     rest(`Avatar?select=photoUrl,heightCm,weightKg,figure,updatedAt&userId=eq.${id}`),
   ]);
@@ -285,30 +228,60 @@ export async function contrasenaTemporal(id) {
   return contrasena;
 }
 
+/**
+ * El enlace que lleva a elegir contraseña nueva.
+ *
+ * Se le pide a GoTrue el testigo y **la dirección se compone aquí**. El
+ * `action_link` que devuelve viene con la dirección interna de Docker
+ * (`http://supabase-kong:8000`), que no abre en ningún móvil; con el testigo en
+ * la mano, montar la URL buena es una línea y deja de depender de cómo esté
+ * configurada la instancia.
+ */
+async function enlaceDeRecuperacion(correo) {
+  const r = await gotrue("/admin/generate_link", {
+    method: "POST",
+    body: JSON.stringify({
+      type: "recovery",
+      email: correo,
+      ...(SITIO ? { options: { redirect_to: `${SITIO}/recuperar/` } } : {}),
+    }),
+  });
+  if (!r.ok) throw new ErrorHttp(502, `No se pudo preparar el enlace (HTTP ${r.status})`);
+
+  const { hashed_token: testigo } = await r.json();
+  if (!testigo) throw new ErrorHttp(502, "GoTrue no devolvió ningún testigo");
+
+  const destino = encodeURIComponent(`${SITIO}/recuperar/`);
+  return `${url}/auth/v1/verify?token=${testigo}&type=recovery&redirect_to=${destino}`;
+}
+
+/** Lo que dispara el administrador desde la ficha de una cuenta. */
 export async function enviarRecuperacion(id) {
   const u = await usuarioDeGoTrue(id);
   if (!u.email) throw new ErrorHttp(400, "Esa cuenta no tiene correo");
-
-  // Con la clave pública, que es la que corresponde a esta operación: es la
-  // misma petición que haría el usuario desde la pantalla de acceso.
-  const r = await fetch(`${url}/auth/v1/recover`, {
-    method: "POST",
-    headers: { apikey: anon, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      email: u.email,
-      ...(SITIO ? { redirect_to: `${SITIO.replace(/\/$/, "")}/recuperar/` } : {}),
-    }),
-  });
-  if (!r.ok) {
-    const texto = await r.text();
-    throw new ErrorHttp(
-      502,
-      /smtp|mailer|sending/i.test(texto)
-        ? "El servidor no pudo enviar el correo. Revisa el SMTP de Supabase."
-        : `No se pudo enviar el correo (HTTP ${r.status})`,
-    );
-  }
+  await correoDeRecuperacion(u.email, await enlaceDeRecuperacion(u.email));
   return u.email;
+}
+
+/**
+ * Lo que pide el propio usuario desde «He olvidado mi contraseña».
+ *
+ * Nunca dice si la cuenta existe: contesta igual encuentre o no encuentre, que
+ * es lo que evita convertir esta ruta en una forma de averiguar quién tiene
+ * cuenta. Tampoco toca las cuentas de la otra aplicación de la instancia.
+ */
+export async function recuperacionPedidaPor(correo) {
+  const limpio = String(correo ?? "").trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(limpio)) {
+    throw new ErrorHttp(400, "Ese correo no tiene un formato válido");
+  }
+
+  const usuarios = await usuariosDeGoTrue();
+  const suyo = usuarios.find((u) => (u.email ?? "").toLowerCase() === limpio);
+  if (!suyo) return { encontrado: false };
+
+  await correoDeRecuperacion(limpio, await enlaceDeRecuperacion(limpio));
+  return { encontrado: true };
 }
 
 /** Duraciones que ofrece el panel. GoTrue las quiere en horas. */
@@ -359,8 +332,8 @@ async function firmar(rutas) {
 /** Rutas que están en uso: las de las prendas y las de las fotos de cuerpo. */
 async function rutasEnUso() {
   const [prendas, avatares] = await Promise.all([
-    rest(`Item?select=imageUrl,originalUrl,name&limit=${TOPE}`),
-    rest(`Avatar?select=photoUrl&limit=${TOPE}`),
+    todas("Item?select=imageUrl,originalUrl,name"),
+    todas("Avatar?select=photoUrl"),
   ]);
 
   const uso = new Map();
