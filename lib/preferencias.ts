@@ -46,3 +46,7 @@ export function escribirBooleana(clave: string, valor: boolean) {
 }
 
 export const MI_FOTO = "escaparate-mi-foto";
+
+/** Cuadrícula o lista en el armario. Es de este dispositivo: en un móvil
+ *  pequeño se prefiere la lista y en uno grande la cuadrícula. */
+export const VISTA_ARMARIO = "escaparate-vista-armario";

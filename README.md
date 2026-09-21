@@ -214,8 +214,22 @@ de dónde viene cada una.
 El escaparate filtra por **todas** las propiedades que se catalogan: categoría,
 tipo, color, temporada, ocasión, marca, talla, tramo de precio, año de compra y
 favoritas, además de la búsqueda por texto. Las categorías están siempre a la
-vista y el resto vive en un panel desplegable con el número de filtros activos en
-el botón.
+vista, junto al buscador, y el resto vive en una **pantalla completa**
+([FiltrosPantalla.tsx](components/closet/FiltrosPantalla.tsx)) que entra
+deslizándose desde abajo y sale por donde entró.
+
+Antes era un desplegable de 55vh: nueve filas dentro de un cajón que había que
+recorrer por dentro, con las opciones en raíles horizontales donde la mitad
+quedaba fuera de vista, y la cuadrícula asomando debajo sin llegar a verse. A
+pantalla completa las opciones se reparten en varias líneas y se ven todas —lo
+que no se ve no se filtra—, el botón de abajo dice **cuántas prendas quedarían**
+para poder afinar sin salir, y el botón que la abre sigue llevando el número de
+filtros puestos.
+
+Un detalle de maquetación que conviene no perder: la pantalla se monta fuera de
+la barra de filtros. La barra lleva `backdrop-blur`, y un elemento con filtro de
+fondo pasa a ser el marco de referencia de lo que cuelga de él con posición fija,
+así que ahí dentro la pantalla «completa» solo ocuparía el alto de la barra.
 
 Marca, talla, año y tipo **no salen de ninguna lista fija**: se derivan de las
 prendas que hay en el armario, que es lo único que tiene sentido ofrecer —nadie
@@ -226,6 +240,17 @@ quedaría vacía sin que se vea por qué.
 «Sin precio» y «Sin fecha» son tramos como los demás, y sirven para lo contrario
 de lo que parece: encontrar las prendas a las que les falta el dato y
 completarlas.
+
+### Cuadrícula o lista
+
+El armario se mira de dos maneras y **elige el usuario**, con el interruptor de
+dos iconos que hay junto al recuento. La cuadrícula de tres columnas enseña la
+foto grande; la lista ([ItemRow.tsx](components/closet/ItemRow.tsx)) es la misma
+tarjeta que «Tu prenda más cara» del inicio y cambia foto por ficha: tipo, marca,
+talla y precio, que en una casilla de tres columnas no entran. La elección se
+guarda en el dispositivo ([lib/preferencias.ts](lib/preferencias.ts)), como la de
+la foto en el probador: lo que se quiere ver en el móvil no tiene por qué valer
+en el portátil.
 
 ## Cuánto vale el armario
 

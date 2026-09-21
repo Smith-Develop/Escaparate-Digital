@@ -1,14 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { motion } from "framer-motion";
 import { RESORTE } from "@/lib/animaciones";
 import { ClosetFilters } from "@/components/closet/ClosetFilters";
+import { FiltrosPantalla } from "@/components/closet/FiltrosPantalla";
 import { ItemCard } from "@/components/closet/ItemCard";
+import { ItemRow } from "@/components/closet/ItemRow";
 import { ItemDetailSheet } from "@/components/closet/ItemDetailSheet";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { filterItems, useCloset } from "@/lib/store";
+import {
+  escribirBooleana,
+  leerBooleana,
+  subscribePreferencia,
+  VISTA_ARMARIO,
+} from "@/lib/preferencias";
 import type { AvatarParams, Item, Tag } from "@/lib/types";
 
 export function ClosetView({
@@ -25,16 +33,19 @@ export function ClosetView({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selected, setSelected] = useState<Item | null>(null);
 
+  // La elección de vista se recuerda: es del dispositivo, no de la cuenta, y
+  // se lee como store externo para no chocar con la hidratación.
+  const enLista = useSyncExternalStore(
+    subscribePreferencia,
+    () => leerBooleana(VISTA_ARMARIO, false),
+    () => false,
+  );
+
   const visible = useMemo(() => filterItems(items, filters), [items, filters]);
 
   return (
     <>
-      <ClosetFilters
-        open={filtersOpen}
-        onToggle={() => setFiltersOpen((v) => !v)}
-        items={items}
-        tags={tags}
-      />
+      <ClosetFilters open={filtersOpen} onOpen={() => setFiltersOpen(true)} />
 
       <div className="flex-1 px-5 pb-28 pt-3">
         {items.length === 0 ? (
@@ -60,16 +71,33 @@ export function ClosetView({
           </div>
         ) : (
           <>
-            <p className="mb-3 text-xs text-ink-faint">
-              {visible.length} {visible.length === 1 ? "prenda" : "prendas"}
-            </p>
-            <ul className="grid grid-cols-3 gap-3">
-              {visible.map((item, index) => (
-                <li key={item.id}>
-                  <ItemCard item={item} index={index} onClick={() => setSelected(item)} />
-                </li>
-              ))}
-            </ul>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-xs text-ink-faint">
+                {visible.length} {visible.length === 1 ? "prenda" : "prendas"}
+              </p>
+              <SelectorDeVista
+                enLista={enLista}
+                onChange={(valor) => escribirBooleana(VISTA_ARMARIO, valor)}
+              />
+            </div>
+
+            {enLista ? (
+              <ul className="flex flex-col gap-2.5">
+                {visible.map((item, index) => (
+                  <li key={item.id}>
+                    <ItemRow item={item} index={index} onClick={() => setSelected(item)} />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <ul className="grid grid-cols-3 gap-3">
+                {visible.map((item, index) => (
+                  <li key={item.id}>
+                    <ItemCard item={item} index={index} onClick={() => setSelected(item)} />
+                  </li>
+                ))}
+              </ul>
+            )}
           </>
         )}
       </div>
@@ -90,6 +118,13 @@ export function ClosetView({
         </Link>
       </motion.div>
 
+      <FiltrosPantalla
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        items={items}
+        tags={tags}
+      />
+
       <ItemDetailSheet
         item={selected}
         avatar={avatar}
@@ -97,5 +132,72 @@ export function ClosetView({
         onClose={() => setSelected(null)}
       />
     </>
+  );
+}
+
+/**
+ * Cuadrícula o lista.
+ *
+ * Dos iconos y no un texto: es un ajuste de cómo se mira, no una acción, y así
+ * ocupa el ancho de un pulgar al lado del recuento. La elegida se queda en
+ * ámbar, como el resto de lo que está puesto en la app.
+ */
+function SelectorDeVista({
+  enLista,
+  onChange,
+}: {
+  enLista: boolean;
+  onChange: (enLista: boolean) => void;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="Cómo se ven las prendas"
+      className="edge flex shrink-0 items-center gap-0.5 rounded-full bg-surface p-1"
+    >
+      <BotonDeVista label="Ver en cuadrícula" activo={!enLista} onClick={() => onChange(false)}>
+        <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <rect x="3.5" y="3.5" width="7" height="7" rx="2" />
+          <rect x="13.5" y="3.5" width="7" height="7" rx="2" />
+          <rect x="3.5" y="13.5" width="7" height="7" rx="2" />
+          <rect x="13.5" y="13.5" width="7" height="7" rx="2" />
+        </svg>
+      </BotonDeVista>
+
+      <BotonDeVista label="Ver en lista" activo={enLista} onClick={() => onChange(true)}>
+        <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <rect x="3.5" y="4.5" width="17" height="5.5" rx="2" />
+          <rect x="3.5" y="14" width="17" height="5.5" rx="2" />
+        </svg>
+      </BotonDeVista>
+    </div>
+  );
+}
+
+function BotonDeVista({
+  label,
+  activo,
+  onClick,
+  children,
+}: {
+  label: string;
+  activo: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      aria-pressed={activo}
+      className={[
+        "grid size-8 place-items-center rounded-full transition-colors",
+        activo ? "bg-accent text-on-accent" : "text-ink-faint",
+      ].join(" ")}
+    >
+      {children}
+    </button>
   );
 }
